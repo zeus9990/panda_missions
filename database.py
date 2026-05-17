@@ -1,0 +1,305 @@
+import motor.motor_asyncio
+from pymongo import ReturnDocument
+from datetime import datetime, timezone
+import config
+import io
+import csv
+import asyncio
+
+# data_set ={
+#     "_id": 7892377357757735,
+#     "username": "zeus",
+#     "total_xp": 23472,
+#     "monthly_xp": 788,
+#     "rank": 723873773873472472,
+#     "missions": [], #mission_ids of completed missions goes in here
+#     "weekly_msg_count": 77,
+#     "created_at": "23-08-26"
+# }
+
+
+database = motor.motor_asyncio.AsyncIOMotorClient(config.DB_URL)
+pandabase = database["Betpanda"]
+betpanda = pandabase["betpanda"]
+print("Database connection Successfull!!")
+
+# Database indexing
+async def setup_indexes() -> None:
+    await betpanda.create_index([("total_xp", -1)])
+    await betpanda.create_index([("monthly_xp", -1)])
+
+# Generates an in-memory CSV snapshot of all users.
+async def generate_snapshot_csv(reset_type: str) -> tuple[io.BytesIO, str]:
+    now = datetime.now(timezone.utc)
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"{reset_type}_reset_snapshot_{timestamp}.csv"
+    users = await betpanda.find({}).to_list(length=None)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["Username", "User ID", "Total XP", "Monthly XP", "Missions Completed"])
+
+    for user in users:
+        writer.writerow([
+            user.get("username", ""),
+            user.get("_id", ""),
+            user.get("total_xp", 0),
+            user.get("monthly_xp", 0),
+            len(user.get("missions", []))
+        ])
+
+    byte_buffer = io.BytesIO(buffer.getvalue().encode("utf-8"))
+    byte_buffer.seek(0)
+    return byte_buffer, filename
+
+# Register a new user in the database at first interaction with the bot.
+async def user_register(userid: int, username: str) -> dict:
+    today_str = datetime.now(timezone.utc).date().isoformat()
+
+    result = await betpanda.update_one(
+        {"_id": userid},
+        {
+            "$setOnInsert": {
+                "username": username,
+                "total_xp": 0,
+                "monthly_xp": 0,
+                "rank": 0,
+                "missions": [],
+                "weekly_msg_count": 0,
+                "created_at": today_str
+            }
+        },
+        upsert=True
+    )
+
+    if result.upserted_id:
+        return {"success": True, "message": "Registration successful."}
+
+    return {"success": False, "message": "User already registered."}
+    
+# Fetches data of a user from the database.
+async def user_details(userid: int) -> dict:
+    user_details = await betpanda.find_one({'_id': userid})
+    if user_details:
+        return {"success": True, "message": user_details}
+    else:
+        return {"success": False, "message": f"Sorry <@{userid}> you're not registered yet, send a message in general chat to register yourself."}
+
+# Add or remove Xp from a user also updates the weekly message count if given.
+async def xp_update(userid: int, username: str, xp_amount: int, msg_count: int=0) -> dict:
+    await user_register(userid, username)
+    updated_user = await betpanda.find_one_and_update(
+        {"_id": userid},
+        {
+            "$inc": {
+                "weekly_msg_count": msg_count,
+                "total_xp": xp_amount,
+                "monthly_xp": xp_amount
+            }
+        },
+        return_document=ReturnDocument.AFTER
+    )
+
+    return {
+        "success": True,
+        "message": f"{'Added' if xp_amount >= 0 else 'Removed'} {abs(xp_amount)} XP from <@{userid}>.",
+        "xp": {
+            "total_xp": updated_user["total_xp"],
+            "monthly_xp": updated_user["monthly_xp"],
+            "weekly_msg_count": updated_user["weekly_msg_count"]
+            }
+        }
+
+# Pull leaderboard and current position in the leaderboard.
+async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
+    xp_field = "monthly_xp" if leaderboard_type == "monthly" else "total_xp"
+    current_user = await betpanda.find_one({"_id": userid}, {"username": 1, xp_field: 1})
+    if not current_user:
+        return {
+            "success": False,
+            "message": f"Sorry <@{userid}> you're not registered yet, send a message in general chat to register yourself."
+        }
+
+    # Single aggregation pipeline gets top 10 + current user rank atomically
+    pipeline = [
+        {
+            "$setWindowFields": {
+                "sortBy": {xp_field: -1},
+                "output": {
+                    "position": {"$rank": {}}
+                }
+            }
+        },
+        {
+            "$match": {
+                "$or": [
+                    {"position": {"$lte": 10}},
+                    {"_id": userid}
+                ]
+            }
+        },
+        {
+            "$project": {
+                "_id": 1,
+                "username": 1,
+                xp_field: 1,
+                "position": 1
+            }
+        }
+    ]
+
+    results = await betpanda.aggregate(pipeline).to_list(length=11)
+
+    top_10 = []
+    user_entry = None
+
+    for entry in results:
+        formatted = {
+            "position": entry["position"],
+            "username": entry["username"],
+            "xp": entry.get(xp_field, 0)
+        }
+        if entry["position"] <= 10:
+            top_10.append(formatted)
+        if entry["_id"] == userid:
+            user_entry = formatted
+    top_10.sort(key=lambda x: x["position"])
+
+    return {
+        "success": True,
+        "leaderboard_type": leaderboard_type,
+        "top_10": top_10,
+        "user": user_entry
+    }
+
+# Get position of a user in monthly and total xp leaderboard.
+async def get_user_rank_position(userid: int) -> dict:
+    pipeline_total = [
+        {
+            "$setWindowFields": {
+                "sortBy": {"total_xp": -1},
+                "output": {"position": {"$rank": {}}}
+            }
+        },
+        {"$match": {"_id": userid}},
+        {"$project": {"_id": 1, "username": 1, "total_xp": 1, "position": 1}}
+    ]
+
+    pipeline_monthly = [
+        {
+            "$setWindowFields": {
+                "sortBy": {"monthly_xp": -1},
+                "output": {"position": {"$rank": {}}}
+            }
+        },
+        {"$match": {"_id": userid}},
+        {"$project": {"_id": 1, "monthly_xp": 1, "position": 1}}
+    ]
+
+    total_result, monthly_result = await asyncio.gather(
+        betpanda.aggregate(pipeline_total).to_list(length=1),
+        betpanda.aggregate(pipeline_monthly).to_list(length=1)
+    )
+
+    if not total_result:
+        return {
+            "success": False,
+            "message": "User not found!"
+        }
+
+    total_entry = total_result[0]
+    monthly_entry = monthly_result[0] if monthly_result else {}
+
+    return {
+        "success": True,
+        "username": total_entry["username"],
+        "total_xp": total_entry.get("total_xp", 0),
+        "total_position": total_entry["position"],
+        "monthly_xp": monthly_entry.get("monthly_xp", 0),
+        "monthly_position": monthly_entry.get("position")
+    }
+
+# Update missions for users as they progress.
+async def complete_mission(userid: int, username: str, mission_key: str) -> dict:
+
+    # Ensure user exists
+    await user_register(userid, username)
+
+    # Validate mission
+    mission = config.WEEKLY_MISSIONS.get(mission_key)
+
+    if not mission:
+        return {"success": False, "message": "Invalid mission."}
+
+    mission_id = mission["mission_id"]
+    xp_reward = mission["xp_reward"]
+    result = await betpanda.update_one(
+        {
+            "_id": userid,
+            "missions": {
+                "$ne": mission_id
+            }
+        },
+        {
+            "$addToSet": {
+                "missions": mission_id
+            },
+            "$inc": {
+                "total_xp": xp_reward,
+                "monthly_xp": xp_reward
+            }
+        }
+    )
+
+    if result.modified_count == 0:
+        return {"success": False, "message": "Mission already completed."}
+
+    return {
+        "success": True,
+        "message": f"Mission completed! +{xp_reward} XP",
+        "mission": {
+            "mission_id": mission_id,
+            "name": mission["name"],
+            "xp_reward": xp_reward
+        }
+    }
+
+# pdates the user's rank role_id in database.
+async def update_user_rank(userid: int, role_id: int) -> dict:
+    result = await betpanda.update_one(
+        {
+            "_id": userid,
+            "rank": {"$ne": role_id}
+        },
+        {
+            "$set": {
+                "rank": role_id
+            }
+        }
+    )
+
+    if result.modified_count == 0:
+        return {"success": False, "message": "User already has this rank."}
+
+    return {"success": True, "message": "Rank updated successfully.", "role_id": role_id}
+
+# Weekly reset
+async def weekly_reset() -> dict:
+    file, filename = await generate_snapshot_csv("weekly")
+    result = await betpanda.update_many({}, {"$set": {"weekly_msg_count": 0, "missions": []}})
+    return {
+        "success": True,
+        "modified_users": result.modified_count,
+        "file": file,
+        "filename": filename
+    }
+
+# monthly xp reset
+async def monthly_reset() -> dict:
+    file, filename = await generate_snapshot_csv("monthly")
+    result = await betpanda.update_many({}, {"$set": {"monthly_xp": 0}})
+    return {
+        "success": True,
+        "modified_users": result.modified_count,
+        "file": file,
+        "filename": filename
+    }

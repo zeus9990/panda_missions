@@ -1,0 +1,134 @@
+# Cog: XP Earning and Role-Management Rules
+import random
+import discord
+from discord.ext import commands
+import config
+from cachetools import TTLCache
+import logging
+from database import xp_update, complete_mission, update_user_rank
+
+logger = logging.getLogger(__name__)
+
+class XPCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.cooldown_cache = TTLCache(maxsize=10_000, ttl=config.COOLDOWN_SECONDS)
+
+    def calculate_message_xp(self, message_content: str) -> int:
+        """Calculate dynamic XP reward based on message character length."""
+        content_length = len(message_content)
+        
+        for rule in config.XP_LENGTH_RULES:
+            if content_length <= rule["max_len"]:
+                return random.randint(rule["min_xp"], rule["max_xp"])              
+        # Default fallback
+        return random.randint(5, 15)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        try:
+            if message.author.bot:
+                return
+
+            # Check if the message is in an XP-awarding channel
+            if message.channel.id not in config.XP_CHANNELS:
+                return
+
+            user_id = message.author.id
+            time = discord.utils.utcnow()
+            last_xp_time = self.cooldown_cache.get(user_id)
+            time_delta = (time - last_xp_time).total_seconds() if last_xp_time else float('inf')
+            
+            if time_delta < config.COOLDOWN_SECONDS:
+                # Cooldown is active. We silent-ignore XP award to prevent farming.
+                # But we still let normal discord messages pass without spamming notifications.
+                return
+
+            # Cooldown passed! Calculate dynamic length-based XP
+            xp_to_award = self.calculate_message_xp(message.content)
+            self.cooldown_cache[user_id] = time
+
+            # Award XP in DB
+            msg_count = 1 if message.channel.id == config.GENERAL_CHAT_ID else 0
+            result = await xp_update(userid=user_id, username=message.author.name, xp_amount=xp_to_award, msg_count=msg_count)
+            mission_xp = 0
+            if result['success']:
+                weekly_message_count = result['xp']['weekly_msg_count']
+                if weekly_message_count >= config.WEEKLY_MSG_COUNT:
+                    mission_data = config.WEEKLY_MISSIONS['msg_general']
+                    mission_status = await complete_mission(userid=user_id, username=message.author.name, mission_key='msg_general')
+                    if mission_status['success']:
+                        embed = discord.Embed(
+                            title="🎉 Weekly Mission Completed!",
+                            description=f"Congratulations **{message.author.name}**!\n"
+                                        f"**You completed:** {mission_data['name']}\n"
+                                        f"**Mission Description:** {mission_data['description']}\n"
+                                        f"**Rewarded:** **+{mission_data['xp_reward']} XP**!",
+                            color=discord.Color.green()
+                        )
+                        embed.timestamp = discord.utils.utcnow()
+                        channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+                        if channel:
+                            await channel.send(embed=embed)
+        
+                        # Log in staff channel
+                        staff_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+                        if staff_channel:
+                            embed = discord.Embed(
+                                title="📈 Mission Complete!",
+                                description=f"**User:** {message.author.mention}\n"
+                                            f"**User ID:** {user_id}\n"
+                                            f"**Mission Title:** {mission_data['name']}\n"
+                                            f"**Mission ID:** `{mission_data['mission_id']}`\n"
+                                            f"**Mission Reward:** `+{mission_data['xp_reward']} XP`\n"
+                                            f"**Reward Assigner:** Auto assigned.",
+                                color=discord.Color.green()                                      
+                            )
+                            embed.timestamp = discord.utils.utcnow()
+                            await staff_channel.send(embed=embed)
+                        mission_xp += mission_data['xp_reward']
+
+                total_xp = result['xp']['total_xp'] + mission_xp
+                eligible_rank = None
+
+                for rank in config.RANK_THRESHOLDS:
+                    if total_xp >= rank["xp"]:
+                        eligible_rank = rank
+                
+                if eligible_rank:
+                    role_id = eligible_rank['role_id']
+                    data = await update_user_rank(userid=user_id, role_id=role_id)
+                    if data['success']:
+                        role = message.guild.get_role(role_id)
+                        await message.author.add_roles(role)
+                        embed = discord.Embed(
+                            title="🐼 Rank Up! Level Cleared!",
+                            description=f"Amazing effort, **{message.author.mention}**!\n"
+                                        f"**You have reached the rank of:** <@&{role_id}>!\n"
+                                        f"**Total Cumulative XP:** {total_xp} XP",
+                            color=discord.Color.gold()
+                        )
+                        embed.set_thumbnail(url=message.author.display_avatar.url if message.author.display_avatar else None)
+                        embed.timestamp = discord.utils.utcnow()
+                        channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+                        if channel:
+                            await channel.send(embed=embed)
+
+                        staff_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+                        if staff_channel:
+                            embed = discord.Embed(
+                                title="🏆 Rank Up!",
+                                description=f"**User:** {message.author.mention}\n"
+                                            f"**User ID:** {user_id}\n"
+                                            f"**Role Assigned:** <@&{role_id}>\n"
+                                            f"**Role ID:** {role_id}\n"
+                                            f"**Reward Assigner:** Auto assigned.",
+                                color=discord.Color.green()                                      
+                            )
+                            embed.timestamp = discord.utils.utcnow()
+                            await staff_channel.send(embed=embed)
+        except Exception as e:
+            logger.error(f"XP Cog crashed for {message.author}: {e}", exc_info=True)
+
+async def setup(bot):
+    await bot.add_cog(XPCog(bot))
