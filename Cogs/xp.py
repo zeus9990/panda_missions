@@ -56,10 +56,10 @@ class XPCog(commands.Cog):
                 if mission_status['success']:
                     embed = discord.Embed(
                         title="🎉 Weekly Mission Completed!",
-                        description=f"**Congratulations {message.author.name}!**\n"
+                        description=f"**Congratulations {message.author.mention}!**\n"
                                     f"● **You completed:** {mission_data['name']}\n"
                                     f"● **Mission Description:** {mission_data['description']}\n"
-                                    f"● **Rewarded:** **+{mission_data['xp_reward']} XP**!",
+                                    f"● **Rewarded:** `+{mission_data['xp_reward']} XP`",
                         color=discord.Color.green()
                     )
                     embed.timestamp = discord.utils.utcnow()
@@ -103,7 +103,7 @@ class XPCog(commands.Cog):
                         title="🐼 Rank Up! Level Cleared!",
                         description=f"**🎉 Congratulations {message.author.mention}**!\n"
                                     f"● **You have reached the rank of:** <@&{role_id}>!\n"
-                                    f"● **Total Cumulative XP:** {total_xp} XP",
+                                    f"● **Total Cumulative XP:** `{total_xp} XP`",
                         color=discord.Color.gold()
                     )
                     embed.set_thumbnail(url=message.author.display_avatar.url if message.author.display_avatar else None)
