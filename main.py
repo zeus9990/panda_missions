@@ -21,7 +21,8 @@ initial_extensions = [
     "Cogs.missions",
     "Cogs.reset",
     "Cogs.user",
-    "Cogs.xp"
+    "Cogs.xp",
+    "Cogs.error_handler"
 ]
 
 @bot.event
@@ -38,14 +39,5 @@ async def setup_hook():
         except Exception as e:
             print(f'ERROR: {e}')
     await bot.tree.sync()
-
-@bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    original = getattr(error, "original", error)
-    
-    if isinstance(original, discord.NotFound) and original.code == 10062:
-        return  # silently ignore expired interactions
-
-    logging.getLogger(__name__).error("App command error: %s", error, exc_info=True)
 
 bot.run(config.BOT_TOKEN)
