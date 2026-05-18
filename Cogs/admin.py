@@ -110,7 +110,7 @@ class AdminCog(commands.Cog):
     @app_commands.command(name="verify_mission", description="Manually approve and award XP for user weekly missions (Moderators only).")
     @app_commands.describe(member="The member to verify mission for")
     @app_commands.choices(mission=[
-        app_commands.Choice(name=key, value=m["name"])
+        app_commands.Choice(name=m["name"], value=key)
         for key, m in config.WEEKLY_MISSIONS.items()
         if not m["auto_track"] and m["status"] == "Active"
     ])
@@ -122,7 +122,7 @@ class AdminCog(commands.Cog):
             )
             return
 
-        mission_key = mission.name
+        mission_key = mission.value
         mission_cfg = config.WEEKLY_MISSIONS.get(mission_key)
 
         if not mission_cfg:
