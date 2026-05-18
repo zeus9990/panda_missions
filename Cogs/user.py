@@ -108,7 +108,7 @@ class UserCog(commands.Cog):
 
         for user in leaderboard['top_10']:
             position = str(user['position']).zfill(2)
-            desc += f"**• {position}** {user['username']} - `{user['xp']:,} XP`\n"
+            desc += f"**● {position}** {user['username']} - `{user['xp']:,} XP`\n"
 
         if not desc:
             desc = "No active users logged yet! Be the first to chat and score points."

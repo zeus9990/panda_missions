@@ -18,7 +18,7 @@ class ErrorHandlerCog(commands.Cog):
             return
 
         if isinstance(original, discord.Forbidden):
-            await self._safe_send(interaction, "❌ I don't have permission to do that.")
+            await self._safe_send(interaction, "> ❌ I don't have permission to do that.")
             return
 
         command_name = interaction.command.name if interaction.command else "Unknown"
@@ -26,7 +26,7 @@ class ErrorHandlerCog(commands.Cog):
             "Unhandled error in command '%s' by user %s: %s",
             command_name, interaction.user.id, original, exc_info=True
         )
-        await self._safe_send(interaction, "❌ Something went wrong.")
+        await self._safe_send(interaction, "> ❌ Something went wrong.")
 
     async def _safe_send(self, interaction: discord.Interaction, message: str):
         try:

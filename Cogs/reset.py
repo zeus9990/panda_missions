@@ -27,11 +27,12 @@ class ResetCog(commands.Cog):
             if mission_channel:
                 embed = discord.Embed(
                     title="📅 New Month Reset Complete!",
-                    description="The monthly XP leaderboard has been officially archived and reset for the new month!\n"
-                                "Total cumulative XP and server ranks remain fully untouched. Let the new race begin!",
+                    description="● The monthly XP leaderboard has been officially archived and reset for the new month!\n"
+                                "● Total cumulative XP and server ranks remain fully untouched. Let the new race begin!",
                     color=discord.Color.orange(),
                     timestamp=discord.utils.utcnow()
                 )
+                embed.set_footer(text="betpanda.io")
                 await mission_channel.send(embed=embed)
 
             log_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
@@ -39,12 +40,12 @@ class ResetCog(commands.Cog):
                 embed = discord.Embed(
                     title="📅 Monthly Reset — Snapshot",
                     description="📊 Monthly reset complete! Here's the snapshot before the wipe:",
-                    color=discord.Color.gold(),
+                    color=discord.Color.blue(),
                     timestamp=discord.utils.utcnow()
                 )
-                embed.add_field(name="Users Modified", value=str(result["modified_users"]), inline=True)
-                embed.add_field(name="Reset Type", value="Monthly", inline=True)
-                embed.add_field(name="Snapshot File", value=f"`{result['filename']}`", inline=False)
+                embed.add_field(name="● Users Modified", value=str(result["modified_users"]), inline=True)
+                embed.add_field(name="● Reset Type", value="Monthly", inline=True)
+                embed.add_field(name="● Snapshot File", value=f"`{result['filename']}`", inline=False)
                 embed.set_footer(text="Data captured before reset")
                 with result["file"] as fp:
                     await log_channel.send(embed=embed)
@@ -70,12 +71,12 @@ class ResetCog(commands.Cog):
                 embed = discord.Embed(
                     title="📆 Weekly Reset — Snapshot",
                     description="📊 Weekly reset complete! Here's the snapshot before the wipe:",
-                    color=discord.Color.blurple(),
+                    color=discord.Color.blue(),
                     timestamp=discord.utils.utcnow()
                 )
-                embed.add_field(name="Users Modified", value=str(result["modified_users"]), inline=True)
-                embed.add_field(name="Reset Type", value="Weekly", inline=True)
-                embed.add_field(name="Snapshot File", value=f"`{result['filename']}`", inline=False)
+                embed.add_field(name="● Users Modified", value=str(result["modified_users"]), inline=True)
+                embed.add_field(name="● Reset Type", value="Weekly", inline=True)
+                embed.add_field(name="● Snapshot File", value=f"`{result['filename']}`", inline=False)
                 embed.set_footer(text="Data captured before reset")
                 with result["file"] as fp:
                     await log_channel.send(embed=embed)

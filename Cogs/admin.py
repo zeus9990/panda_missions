@@ -23,13 +23,13 @@ class AdminCog(commands.Cog):
     async def award_xp(self, interaction: discord.Interaction, member: discord.Member, amount: int, reason: str = "Good behaviour & community vibes"):
         if not self.is_moderator(interaction):
             await interaction.response.send_message(
-                "❌ **Access Denied**: Only server staff with the administrator role can use this command.",
+                "> ❌ **Access Denied**: Only server staff with the administrator role can use this command.",
                 ephemeral=True
             )
             return
 
         if amount <= 0:
-            await interaction.response.send_message("❌ **Invalid Amount**: You must award more than 0 XP.", ephemeral=True)
+            await interaction.response.send_message("> ❌ **Invalid Amount**: You must award more than 0 XP.", ephemeral=True)
             return
 
         await interaction.response.defer()
@@ -38,14 +38,15 @@ class AdminCog(commands.Cog):
             embed = discord.Embed(
                 title="🎁 XP Awarded!",
                 description=(
-                    f"**{xp_change['message']}**\n"
-                    f"**Reason:** {reason}\n"
-                    f"**Total XP:** `{xp_change['xp']['total_xp']:,} XP`\n"
-                    f"**Monthly XP:** `{xp_change['xp']['monthly_xp']:,} XP`"
+                    f"● **{xp_change['message']}**\n"
+                    f"● **Reason:** {reason}\n"
+                    f"● **Total XP:** `{xp_change['xp']['total_xp']:,} XP`\n"
+                    f"● **Monthly XP:** `{xp_change['xp']['monthly_xp']:,} XP`"
                 ),
                 color=discord.Color.green()
             )
             embed.timestamp = discord.utils.utcnow()
+            embed.set_footer(text="betpanda.io")
             await interaction.followup.send(embed=embed)
 
             # Log in staff channel
@@ -54,16 +55,17 @@ class AdminCog(commands.Cog):
                 staff_embed = discord.Embed(
                     title="🛡️ Moderator Audit: XP Awarded",
                     description=(
-                        f"**Moderator:** {interaction.user.mention} (`{interaction.user.id}`)\n"
-                        f"**Recipient:** {member.mention} (`{member.id}`)\n"
-                        f"**Amount:** `+{amount:,} XP`\n"
-                        f"**Reason:** {reason}\n"
-                        f"**New Total XP:** `{xp_change['xp']['total_xp']:,} XP`\n"
-                        f"**New Monthly XP:** `{xp_change['xp']['monthly_xp']:,} XP`"
+                        f"**✧ Moderator:** {interaction.user.mention} (`{interaction.user.id}`)\n"
+                        f"**✧ Recipient:** {member.mention} (`{member.id}`)\n"
+                        f"**✧ Amount:** `+{amount:,} XP`\n"
+                        f"**✧ Reason:** {reason}\n"
+                        f"**✧ New Total XP:** `{xp_change['xp']['total_xp']:,} XP`\n"
+                        f"**✧ New Monthly XP:** `{xp_change['xp']['monthly_xp']:,} XP`"
                     ),
-                    color=discord.Color.dark_teal()
+                    color=discord.Color.blue()
                 )
                 embed.timestamp = discord.utils.utcnow()
+                embed.set_footer(text="betpanda.io")
                 await log_channel.send(embed=staff_embed)
 
             # Handle rank progression
@@ -82,13 +84,14 @@ class AdminCog(commands.Cog):
                     await member.add_roles(role)
                     embed = discord.Embed(
                         title="🐼 Rank Up! Level Cleared!",
-                        description=f"Amazing effort, **{member.mention}**!\n"
-                                    f"**You have reached the rank of:** <@&{role_id}>!\n"
-                                    f"**Total Cumulative XP:** {total_xp} XP",
+                        description=f"**🎉 Congratulations {member.mention}**!\n"
+                                    f"● **You have reached the rank of: ** <@&{role_id}>!\n"
+                                    f"● **Total Cumulative XP: ** {total_xp} XP",
                         color=discord.Color.gold()
                     )
                     embed.set_thumbnail(url=member.display_avatar.url if member.display_avatar else None)
                     embed.timestamp = discord.utils.utcnow()
+                    embed.set_footer(text="betpanda.io")
                     channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
@@ -97,14 +100,15 @@ class AdminCog(commands.Cog):
                     if staff_channel:
                         embed = discord.Embed(
                             title="🏆 Rank Up!",
-                            description=f"**User:** {member.mention}\n"
-                                        f"**User ID:** {member.id}\n"
-                                        f"**Role Assigned:** <@&{role_id}>\n"
-                                        f"**Role ID:** {role_id}\n"
-                                        f"**Reward Assigner:** Auto assigned.",
-                            color=discord.Color.green()                                      
+                            description=f"**✧ User:** {member.mention}\n"
+                                        f"**✧ User ID:** {member.id}\n"
+                                        f"**✧ Role Assigned:** <@&{role_id}>\n"
+                                        f"**✧ Role ID:** {role_id}\n"
+                                        f"**✧ Reward Assigner:** Auto assigned.",
+                            color=discord.Color.blue()                                      
                         )
                         embed.timestamp = discord.utils.utcnow()
+                        embed.set_footer(text="betpanda.io")
                         await staff_channel.send(embed=embed)
 
     @app_commands.command(name="verify_mission", description="Manually approve and award XP for user weekly missions (Moderators only).")
@@ -117,7 +121,7 @@ class AdminCog(commands.Cog):
     async def verify_mission(self, interaction: discord.Interaction, member: discord.Member, mission: app_commands.Choice[str]):
         if not self.is_moderator(interaction):
             await interaction.response.send_message(
-                "❌ **Access Denied**: Only server staff can verify missions.",
+                "> ❌ **Access Denied**: Only server staff can verify missions.",
                 ephemeral=True
             )
             return
@@ -126,7 +130,7 @@ class AdminCog(commands.Cog):
         mission_cfg = config.WEEKLY_MISSIONS.get(mission_key)
 
         if not mission_cfg:
-            await interaction.response.send_message("❌ **Invalid Mission**: Mission configuration not found.", ephemeral=True)
+            await interaction.response.send_message("> ❌ **Invalid Mission**: Mission configuration not found.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
@@ -136,13 +140,14 @@ class AdminCog(commands.Cog):
                 title="🛡️ Mission Verified & Awarded!",
                 description=(
                     f"**{interaction.user.display_name}** verified completion for **{member.mention}**!\n\n"
-                    f"**Completed Mission:** {mission_cfg['name']}\n"
-                    f"**Mission Details:** {mission_cfg['description']}\n"
-                    f"**Reward Granted:** `+{mission_cfg['xp_reward']:,} XP`"
+                    f"● **Completed Mission:** {mission_cfg['name']}\n"
+                    f"● **Mission Details:** {mission_cfg['description']}\n"
+                    f"● **Reward Granted:** `+{mission_cfg['xp_reward']:,} XP`"
                 ),
                 color=discord.Color.green()
             )
             embed.timestamp = discord.utils.utcnow()
+            embed.set_footer(text="betpanda.io")
             await interaction.followup.send(embed=embed)
             channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
             if channel:
@@ -154,16 +159,17 @@ class AdminCog(commands.Cog):
                 staff_embed = discord.Embed(
                     title="🛡️ Moderator Audit: Mission Verified",
                     description=(
-                        f"**Moderator:** {interaction.user.mention} (`{interaction.user.id}`)\n"
-                        f"**Recipient:** {member.mention} (`{member.id}`)\n"
-                        f"**Mission:** {mission_cfg['name']}\n"
-                        f"**Mission ID:** `{mission_cfg['mission_id']}`\n"
-                        f"**Reward:** `+{mission_cfg['xp_reward']:,} XP`\n"
-                        f"**Verification:** Manual Staff Review"
+                        f"**✧ Moderator:** {interaction.user.mention} (`{interaction.user.id}`)\n"
+                        f"**✧ Recipient:** {member.mention} (`{member.id}`)\n"
+                        f"**✧ Mission:** {mission_cfg['name']}\n"
+                        f"**✧ Mission ID:** `{mission_cfg['mission_id']}`\n"
+                        f"**✧ Reward:** `+{mission_cfg['xp_reward']:,} XP`\n"
+                        f"**✧ Verification:** Manual Staff Review"
                     ),
                     color=discord.Color.blue()
                 )
                 embed.timestamp = discord.utils.utcnow()
+                embed.set_footer(text="betpanda.io")
                 await log_channel.send(embed=staff_embed)
 
     @app_commands.command(name="admin_profile", description="Display mentioned users current rank, XP totals, and progress.")

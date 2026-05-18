@@ -56,13 +56,14 @@ class XPCog(commands.Cog):
                 if mission_status['success']:
                     embed = discord.Embed(
                         title="🎉 Weekly Mission Completed!",
-                        description=f"Congratulations **{message.author.name}**!\n"
-                                    f"**You completed:** {mission_data['name']}\n"
-                                    f"**Mission Description:** {mission_data['description']}\n"
-                                    f"**Rewarded:** **+{mission_data['xp_reward']} XP**!",
+                        description=f"**Congratulations {message.author.name}!**\n"
+                                    f"● **You completed:** {mission_data['name']}\n"
+                                    f"● **Mission Description:** {mission_data['description']}\n"
+                                    f"● **Rewarded:** **+{mission_data['xp_reward']} XP**!",
                         color=discord.Color.green()
                     )
                     embed.timestamp = discord.utils.utcnow()
+                    embed.set_footer(text="betpanda.io")
                     channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
@@ -72,16 +73,17 @@ class XPCog(commands.Cog):
                     if staff_channel:
                         embed = discord.Embed(
                             title="📈 Mission Complete!",
-                            description=f"**User:** {message.author.mention}\n"
-                                        f"**User ID:** {user_id}\n"
-                                        f"**Mission Title:** {mission_data['name']}\n"
-                                        f"**Mission ID:** `{mission_data['mission_id']}`\n"
-                                        f"**Mission Reward:** `+{mission_data['xp_reward']} XP`\n"
-                                        f"**Reward Assigner:** Auto assigned.",
-                            color=discord.Color.green()                                      
+                            description=f"**✧ User:** {message.author.mention}\n"
+                                        f"**✧ User ID:** {user_id}\n"
+                                        f"**✧ Mission Title:** {mission_data['name']}\n"
+                                        f"**✧ Mission ID:** `{mission_data['mission_id']}`\n"
+                                        f"**✧ Mission Reward:** `+{mission_data['xp_reward']} XP`\n"
+                                        f"**✧ Reward Assigner:** Auto assigned.",
+                            color=discord.Color.blue()                                      
                         )
                         embed.timestamp = discord.utils.utcnow()
                         await staff_channel.send(embed=embed)
+                        embed.set_footer(text="betpanda.io")
                     mission_xp += mission_data['xp_reward']
 
             total_xp = result['xp']['total_xp'] + mission_xp
@@ -99,13 +101,14 @@ class XPCog(commands.Cog):
                     await message.author.add_roles(role)
                     embed = discord.Embed(
                         title="🐼 Rank Up! Level Cleared!",
-                        description=f"Amazing effort, **{message.author.mention}**!\n"
-                                    f"**You have reached the rank of:** <@&{role_id}>!\n"
-                                    f"**Total Cumulative XP:** {total_xp} XP",
+                        description=f"**🎉 Congratulations {message.author.mention}**!\n"
+                                    f"● **You have reached the rank of:** <@&{role_id}>!\n"
+                                    f"● **Total Cumulative XP:** {total_xp} XP",
                         color=discord.Color.gold()
                     )
                     embed.set_thumbnail(url=message.author.display_avatar.url if message.author.display_avatar else None)
                     embed.timestamp = discord.utils.utcnow()
+                    embed.set_footer(text="betpanda.io")
                     channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
@@ -114,14 +117,15 @@ class XPCog(commands.Cog):
                     if staff_channel:
                         embed = discord.Embed(
                             title="🏆 Rank Up!",
-                            description=f"**User:** {message.author.mention}\n"
-                                        f"**User ID:** {user_id}\n"
-                                        f"**Role Assigned:** <@&{role_id}>\n"
-                                        f"**Role ID:** {role_id}\n"
-                                        f"**Reward Assigner:** Auto assigned.",
-                            color=discord.Color.green()                                      
+                            description=f"**✧ User:** {message.author.mention}\n"
+                                        f"**✧ User ID:** {user_id}\n"
+                                        f"**✧ Role Assigned:** <@&{role_id}>\n"
+                                        f"**✧ Role ID:** {role_id}\n"
+                                        f"**✧ Reward Assigner:** Auto assigned.",
+                            color=discord.Color.blue()                                      
                         )
                         embed.timestamp = discord.utils.utcnow()
+                        embed.set_footer(text="betpanda.io")
                         await staff_channel.send(embed=embed)
 
 

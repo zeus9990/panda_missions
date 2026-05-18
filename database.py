@@ -101,7 +101,7 @@ async def xp_update(userid: int, username: str, xp_amount: int, msg_count: int=0
 
     return {
         "success": True,
-        "message": f"{'Added' if xp_amount >= 0 else 'Removed'} {abs(xp_amount)} XP from <@{userid}>.",
+        "message": f"{'Added' if xp_amount >= 0 else 'Removed'} {abs(xp_amount)} XP {'to' if xp_amount >= 0 else 'from'} <@{userid}>.",
         "xp": {
             "total_xp": updated_user["total_xp"],
             "monthly_xp": updated_user["monthly_xp"],
