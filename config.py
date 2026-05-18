@@ -54,6 +54,14 @@ RANK_THRESHOLDS = [
 # Some missions are automatically completed (auto_track = True),
 # while others are verified manually by moderators (auto_track = False).
 WEEKLY_MISSIONS = {
+    "spot_the_slot": {
+        "mission_id": "HT905",
+        "name": "Guess the blurred slot",
+        "xp_reward": 250,
+        "auto_track": False,
+        "status": "Active",
+        "description": "A blurred slot will be dropped in #general-chat guess it correctly to complete the mission."
+    },
     "msg_general": {
         "mission_id": "GDF90",
         "name": "Send 20 messages in #general-chat",
