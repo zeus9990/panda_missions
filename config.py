@@ -17,8 +17,8 @@ COOLDOWN_SECONDS = 60                                               # Cooldown t
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
-    {"max_len": 10, "min_xp": 5, "max_xp": 10},
-    {"max_len": 50, "min_xp": 10, "max_xp": 20}
+    {"max_len": 10, "min_xp": 2, "max_xp": 5},
+    {"max_len": 50, "min_xp": 5, "max_xp": 10}
 ]
 
 # Channel IDs that award XP (Channel IDs)
