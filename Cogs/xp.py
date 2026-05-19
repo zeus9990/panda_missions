@@ -5,6 +5,8 @@ from discord.ext import commands
 import config
 from cachetools import TTLCache
 from database import xp_update, complete_mission, update_user_rank
+import re
+from tg_auto import send_telegram_message
 
 class XPCog(commands.Cog):
     def __init__(self, bot):
@@ -24,6 +26,13 @@ class XPCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
+            if message.channel.id == config.TWEET_CHANNEL_ID:
+                urls = re.findall(r'(https?://\S+)',message.content)
+                if not urls:
+                    return
+                url = urls[0]
+                url = url.replace("https://x.com/","https://twitter.com/")
+                send_telegram_message(link_url=url)
             return
 
         # Check if the message is in an XP-awarding channel

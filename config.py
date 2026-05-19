@@ -6,6 +6,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")                                  # Discord bot token from discord developer portal.
 DB_URL = os.getenv("DB_URL")                                        # Database cluster connection url from MongoDB.
+TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")                            # TG bot token from bot father.
 
 ADMIN_ROLE_IDS = [1501988942709264445, 1288139469609762846]         # Role ID that can execute Moderator / Admin commands.
 LOG_CHANNEL_ID = 1505841663002542121                                # Channel ID where bot alerts & bonus logs are posted.
@@ -14,6 +15,9 @@ GENERAL_CHAT_ID = 1288133484723966006                               # General ch
 WEEKLY_MSG_COUNT = 20                                               # Required weekly message count for mission.
 COOLDOWN_SECONDS = 60                                               # Cooldown time between messages to avoid spam.
 
+
+TWEET_CHANNEL_ID = 1504182835479707885                              # watching for new tweets in discord.
+TG_CHAT_ID = -1002194384512                                         # Telegram channel id to mirror tweets.
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
