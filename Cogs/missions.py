@@ -45,20 +45,21 @@ class MissionsCog(commands.Cog):
                 status_text = "Completed" if is_completed else "In Progress"
                 status_color = "🟢" if is_completed else "🟠"
                 tracking_info = "🤖 Auto-tracked" if details['auto_track'] else "🛡️ Moderator Verified"
-                progress_line = ""
-                if details.get('count', 0):
+                value = (
+                    f"● **XP Award:** `{details['xp_reward']:,} XP`\n"
+                    f"● **Status:** {status_emoji} {status_text}\n"
+                    f"● **Type:** {tracking_info}\n"
+                )
+
+                # Add progress only if count exists
+                if details.get("count") is not None:
                     progress = f"{user_data['message'][key]}/{details['count']}"
-                    progress_line = f"\n● **Progress:** {progress}"
-        
+                    value += f"● **Progress:** `{progress}`\n"
+
+                value += f"\n*{details['description']}*"
                 embed.add_field(
                     name=f"{status_color} {details['name']}",
-                    value=(
-                        f"● **XP Award:** `{details['xp_reward']:,} XP`\n"
-                        f"● **Status:** {status_emoji} {status_text}\n"
-                        f"● **Type:** {tracking_info}",
-                        f"{progress_line}\n"
-                        f"*{details['description']}*"
-                    ),
+                    value=value,
                     inline=False
                 )
         
