@@ -53,7 +53,7 @@ class MissionsCog(commands.Cog):
 
                 # Add progress only if count exists
                 if details.get("count") is not None:
-                    progress = f"{user_data['message'][key]}/{details['count']}"
+                    progress = f"{details['count'] if is_completed else user_data['message'][key]} /{details['count']}"
                     value += f"● **Progress:** `{progress}`\n"
 
                 value += f"\n*{details['description']}*"
