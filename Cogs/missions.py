@@ -56,7 +56,7 @@ class MissionsCog(commands.Cog):
                     progress = f"{details['count'] if is_completed else user_data['message'][key]}/{details['count']}"
                     value += f"● **Progress:** `{progress}`\n"
 
-                value += f"\n*{details['description']}*"
+                value += f"*{details['description']}*"
                 embed.add_field(
                     name=f"{status_color} {details['name']}",
                     value=value,
