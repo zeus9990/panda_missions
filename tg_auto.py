@@ -3,10 +3,10 @@ import config
 
 def send_telegram_message(link_url: str):
     url = f"https://api.telegram.org/bot{config.TG_BOT_TOKEN}/sendMessage"
-
+    text = f"🔥 New Tweet Alert Panda's 🐼\n\n{link_url}",
     payload = {
         "chat_id": config.TG_CHAT_ID,
-        "text": "🔥 New Tweet Alert Panda's 🐼",
+        "text": text,
         "link_preview_options": {
             "is_disabled": False,
             "prefer_large_media": True,
