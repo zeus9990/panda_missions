@@ -98,21 +98,13 @@ WEEKLY_MISSIONS = {
         "status": "Active",
         "description": "Give your analytical take in #match-of-the-day on two separate occasions."
     },
-    "motd_correct_score": {
-        "mission_id": "QBG02",
-        "name": "Match of the Day correct score",
-        "xp_reward": 2500,
-        "auto_track": False,
-        "status": "Active",
-        "description": "Predict the exact score in Match of the Day correctly."
-    },
     "x_likes": {
         "mission_id": "XPS01",
         "name": "Like 5 Betpanda posts on X",
         "xp_reward": 100,
         "auto_track": False,
         "status": "Active",
-    "description": "Post 5 Betpanda-related posts on X."
+        "description": "Post 5 Betpanda-related posts on X."
     },
     "x_retweets": {
         "mission_id": "XRT02",
