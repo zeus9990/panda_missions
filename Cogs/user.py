@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from database import user_details, get_user_rank_position, get_leaderboard
-import config
+from config import RANK_THRESHOLDS, WEEKLY_MISSIONS
 
 class UserCog(commands.Cog):
     def __init__(self, bot):
@@ -29,13 +29,13 @@ class UserCog(commands.Cog):
 
         # Resolve rank name from role_id
         current_rank_name = "Unranked"
-        for rank in config.RANK_THRESHOLDS:
+        for rank in RANK_THRESHOLDS:
             if rank["role_id"] == current_rank_role_id:
                 current_rank_name = rank["name"]
                 break
 
         # Determine next rank and progress
-        sorted_thresholds = sorted(config.RANK_THRESHOLDS, key=lambda x: x["xp"])
+        sorted_thresholds = sorted(RANK_THRESHOLDS, key=lambda x: x["xp"])
 
         next_rank_name = "Max Rank Achieved"
         next_rank_xp = 0
@@ -62,7 +62,7 @@ class UserCog(commands.Cog):
         else:
             next_rank_value = "**Max Rank Achieved**"
 
-        active_mission_ids = {m["mission_id"] for m in config.WEEKLY_MISSIONS.values() if m["status"] == "Active"}
+        active_mission_ids = {m["mission_id"] for m in WEEKLY_MISSIONS.values() if m["status"] == "Active"}
         completed_count = sum(1 for mid in completed_missions if mid in active_mission_ids)
         total_active = len(active_mission_ids)
 

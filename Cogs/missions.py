@@ -2,7 +2,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import config
+from config import WEEKLY_MISSIONS
 from database import user_details
 
 class MissionsCog(commands.Cog):
@@ -16,9 +16,9 @@ class MissionsCog(commands.Cog):
         user_data = await user_details(userid=interaction.user.id)
         if user_data['success']:
             completed_mission_ids = user_data['message']['missions']
-            total_missions = len(config.WEEKLY_MISSIONS)
+            total_missions = len(WEEKLY_MISSIONS)
             completed_count = sum(
-                1 for details in config.WEEKLY_MISSIONS.values()
+                1 for details in WEEKLY_MISSIONS.values()
                 if details['mission_id'] in completed_mission_ids
             )
         
@@ -38,7 +38,7 @@ class MissionsCog(commands.Cog):
             avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
             embed.set_author(name="🐼 Weekly Panda Mission Board", icon_url=avatar_url)
         
-            for key, details in config.WEEKLY_MISSIONS.items():
+            for key, details in WEEKLY_MISSIONS.items():
                 mission_id = details['mission_id']
                 is_completed = mission_id in completed_mission_ids
                 status_emoji = "✅" if is_completed else "⏳"

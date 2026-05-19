@@ -1,5 +1,5 @@
 import requests
-import config
+from config import TG_BOT_TOKEN, TG_CHAT_ID
 
 def send_telegram_message(link_url: str):
     url = f"https://api.telegram.org/bot{config.TG_BOT_TOKEN}/sendMessage"

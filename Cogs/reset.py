@@ -3,7 +3,7 @@ from datetime import datetime, timezone, time
 import discord
 from discord.ext import commands, tasks
 from database import monthly_reset, weekly_reset
-import config
+from config import MISSION_CHANNEL_ID, LOG_CHANNEL_ID
 
 MIDNIGHT_UTC = time(0, 0, tzinfo=timezone.utc)
 
@@ -23,7 +23,7 @@ class ResetCog(commands.Cog):
             print("Detected 1st of the month! Triggering automated Monthly XP Reset.")
             result = await monthly_reset()
 
-            mission_channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+            mission_channel = self.bot.get_channel(MISSION_CHANNEL_ID)
             if mission_channel:
                 embed = discord.Embed(
                     title="📅 New Month Reset Complete!",
@@ -35,7 +35,7 @@ class ResetCog(commands.Cog):
                 embed.set_footer(text="betpanda.io")
                 await mission_channel.send(embed=embed)
 
-            log_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+            log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 embed = discord.Embed(
                     title="📅 Monthly Reset — Snapshot",
@@ -55,7 +55,7 @@ class ResetCog(commands.Cog):
             print("Triggering automated Weekly Mission Reset.")
             result = await weekly_reset()
 
-            mission_channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+            mission_channel = self.bot.get_channel(MISSION_CHANNEL_ID)
             if mission_channel:
                 embed = discord.Embed(
                     title="📆 New Week Reset Complete!",
@@ -66,7 +66,7 @@ class ResetCog(commands.Cog):
                 )
                 await mission_channel.send(embed=embed)
 
-            log_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+            log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 embed = discord.Embed(
                     title="📆 Weekly Reset — Snapshot",

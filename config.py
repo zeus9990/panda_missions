@@ -12,12 +12,12 @@ ADMIN_ROLE_IDS = [1501988942709264445, 1288139469609762846]         # Role ID th
 LOG_CHANNEL_ID = 1505841663002542121                                # Channel ID where bot alerts & bonus logs are posted.
 MISSION_CHANNEL_ID = 1505840874280452186                            # Channel ID where bot will ping users upon mission complition and role grants.
 GENERAL_CHAT_ID = 1288133484723966006                               # General chat ID required for completion of general chat message mission.
-WEEKLY_MSG_COUNT = 20                                               # Required weekly message count for mission.
 COOLDOWN_SECONDS = 60                                               # Cooldown time between messages to avoid spam.
 
 
 TWEET_CHANNEL_ID = 1504182835479707885                              # watching for new tweets in discord.
 TG_CHAT_ID = -1002194384512                                         # Telegram channel id to mirror tweets.
+
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
@@ -72,7 +72,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 200,
         "auto_track": True,
         "status": "Active",
-        "description": "Chat and get involved! Messages in #general-chat grant a bonus upon reaching 20 posts."
+        "description": "Chat and get involved! Messages in #general-chat grant a bonus upon reaching 20 posts.",
+        "count": 20
     },
     "predictions": {
         "mission_id": "KTSR9",
@@ -80,7 +81,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 250,
         "auto_track": False,
         "status": "Active",
-        "description": "Submit 3 Match predictions in the #predictions channel."
+        "description": "Submit 3 Match predictions in the #predictions channel.",
+        "count": 3
     },
     "memes": {
         "mission_id": "UEH86",
@@ -96,7 +98,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 200,
         "auto_track": False,
         "status": "Active",
-        "description": "Give your analytical take in #match-of-the-day on two separate occasions."
+        "description": "Give your analytical take in #match-of-the-day on two separate occasions.",
+        "count": 2
     },
     "x_likes": {
         "mission_id": "XPS01",
@@ -104,7 +107,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 100,
         "auto_track": False,
         "status": "Active",
-        "description": "Post 5 Betpanda-related posts on X."
+        "description": "Post 5 Betpanda-related posts on X.",
+        "count": 5
     },
     "x_retweets": {
         "mission_id": "XRT02",
@@ -112,7 +116,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 150,
         "auto_track": False,
         "status": "Active",
-        "description": "Retweet 5 official Betpanda posts on X."
+        "description": "Retweet 5 official Betpanda posts on X.",
+        "count": 5
     },
     "x_comments": {
         "mission_id": "XCM03",
@@ -120,6 +125,7 @@ WEEKLY_MISSIONS = {
         "xp_reward": 250,
         "auto_track": False,
         "status": "Active",
-        "description": "Leave a comment on 5 Betpanda posts on X."
+        "description": "Leave a comment on 5 Betpanda posts on X.",
+        "count": 5
     },
 }

@@ -3,7 +3,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from database import xp_update, update_user_rank, complete_mission, user_details, get_user_rank_position
-import config
+from config import ADMIN_ROLE_IDS, LOG_CHANNEL_ID, RANK_THRESHOLDS, MISSION_CHANNEL_ID, WEEKLY_MISSIONS
 
 class AdminCog(commands.Cog):
     def __init__(self, bot):
@@ -15,7 +15,7 @@ class AdminCog(commands.Cog):
             return False
         return (
             interaction.user.id == interaction.guild.owner_id or
-            any(role.id in config.ADMIN_ROLE_IDS for role in interaction.user.roles)
+            any(role.id in ADMIN_ROLE_IDS for role in interaction.user.roles)
         )
 
     @app_commands.command(name="award", description="Award bonus XP to a user (Moderators only).")
@@ -50,7 +50,7 @@ class AdminCog(commands.Cog):
             await interaction.followup.send(embed=embed)
 
             # Log in staff channel
-            log_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+            log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 staff_embed = discord.Embed(
                     title="🛡️ Moderator Audit: XP Awarded",
@@ -72,7 +72,7 @@ class AdminCog(commands.Cog):
             total_xp = xp_change['xp']['total_xp']
             eligible_rank = None
 
-            for rank in config.RANK_THRESHOLDS:
+            for rank in RANK_THRESHOLDS:
                 if total_xp >= rank["xp"]:
                     eligible_rank = rank
             
@@ -92,11 +92,11 @@ class AdminCog(commands.Cog):
                     embed.set_thumbnail(url=member.display_avatar.url if member.display_avatar else None)
                     embed.timestamp = discord.utils.utcnow()
                     embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
 
-                    staff_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
                     if staff_channel:
                         embed = discord.Embed(
                             title="🏆 Rank Up!",
@@ -115,7 +115,7 @@ class AdminCog(commands.Cog):
     @app_commands.describe(member="The member to verify mission for")
     @app_commands.choices(mission=[
         app_commands.Choice(name=m["name"], value=key)
-        for key, m in config.WEEKLY_MISSIONS.items()
+        for key, m in WEEKLY_MISSIONS.items()
         if not m["auto_track"] and m["status"] == "Active"
     ])
     async def verify_mission(self, interaction: discord.Interaction, member: discord.Member, mission: app_commands.Choice[str]):
@@ -127,7 +127,7 @@ class AdminCog(commands.Cog):
             return
 
         mission_key = mission.value
-        mission_cfg = config.WEEKLY_MISSIONS.get(mission_key)
+        mission_cfg = WEEKLY_MISSIONS.get(mission_key)
 
         if not mission_cfg:
             await interaction.response.send_message("> ❌ **Invalid Mission**: Mission configuration not found.", ephemeral=True)
@@ -149,12 +149,12 @@ class AdminCog(commands.Cog):
             embed.timestamp = discord.utils.utcnow()
             embed.set_footer(text="betpanda.io")
             await interaction.followup.send(embed=embed)
-            channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+            channel = self.bot.get_channel(MISSION_CHANNEL_ID)
             if channel:
                 await channel.send(embed=embed)
 
             # Log in staff channel
-            log_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+            log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 staff_embed = discord.Embed(
                     title="🛡️ Moderator Audit: Mission Verified",
@@ -195,13 +195,13 @@ class AdminCog(commands.Cog):
 
         # Resolve rank name from role_id
         current_rank_name = "Unranked"
-        for rank in config.RANK_THRESHOLDS:
+        for rank in RANK_THRESHOLDS:
             if rank["role_id"] == current_rank_role_id:
                 current_rank_name = rank["name"]
                 break
 
         # Determine next rank and progress
-        sorted_thresholds = sorted(config.RANK_THRESHOLDS, key=lambda x: x["xp"])
+        sorted_thresholds = sorted(RANK_THRESHOLDS, key=lambda x: x["xp"])
 
         next_rank_name = "Max Rank Achieved"
         next_rank_xp = 0
@@ -228,7 +228,7 @@ class AdminCog(commands.Cog):
         else:
             next_rank_value = "**Max Rank Achieved**"
 
-        active_mission_ids = {m["mission_id"] for m in config.WEEKLY_MISSIONS.values() if m["status"] == "Active"}
+        active_mission_ids = {m["mission_id"] for m in WEEKLY_MISSIONS.values() if m["status"] == "Active"}
         completed_count = sum(1 for mid in completed_missions if mid in active_mission_ids)
         total_active = len(active_mission_ids)
 

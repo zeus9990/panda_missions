@@ -1,7 +1,7 @@
 import motor.motor_asyncio
 from pymongo import ReturnDocument
 from datetime import datetime, timezone
-import config
+from config import WEEKLY_MISSIONS, DB_URL
 import io
 import csv
 import asyncio
@@ -13,12 +13,12 @@ import asyncio
 #     "monthly_xp": 788,
 #     "rank": 723873773873472472,
 #     "missions": [], #mission_ids of completed missions goes in here
-#     "weekly_msg_count": 77,
+#     "msg_general": 77,
 #     "created_at": "23-08-26"
 # }
 
 
-database = motor.motor_asyncio.AsyncIOMotorClient(config.DB_URL)
+database = motor.motor_asyncio.AsyncIOMotorClient(DB_URL)
 pandabase = database["Betpanda"]
 betpanda = pandabase["betpanda"]
 print("Database connection Successfull!!")
@@ -64,7 +64,7 @@ async def user_register(userid: int, username: str) -> dict:
                 "monthly_xp": 0,
                 "rank": 0,
                 "missions": [],
-                "weekly_msg_count": 0,
+                "msg_general": 0,
                 "created_at": today_str
             }
         },
@@ -91,7 +91,7 @@ async def xp_update(userid: int, username: str, xp_amount: int, msg_count: int=0
         {"_id": userid},
         {
             "$inc": {
-                "weekly_msg_count": msg_count,
+                "msg_general": msg_count,
                 "total_xp": xp_amount,
                 "monthly_xp": xp_amount
             }
@@ -105,7 +105,7 @@ async def xp_update(userid: int, username: str, xp_amount: int, msg_count: int=0
         "xp": {
             "total_xp": updated_user["total_xp"],
             "monthly_xp": updated_user["monthly_xp"],
-            "weekly_msg_count": updated_user["weekly_msg_count"]
+            "msg_general": updated_user["msg_general"]
             }
         }
 
@@ -225,7 +225,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
     await user_register(userid, username)
 
     # Validate mission
-    mission = config.WEEKLY_MISSIONS.get(mission_key)
+    mission = WEEKLY_MISSIONS.get(mission_key)
 
     if not mission:
         return {"success": False, "message": "Invalid mission."}
@@ -285,7 +285,7 @@ async def update_user_rank(userid: int, role_id: int) -> dict:
 # Weekly reset
 async def weekly_reset() -> dict:
     file, filename = await generate_snapshot_csv("weekly")
-    result = await betpanda.update_many({}, {"$set": {"weekly_msg_count": 0, "missions": []}})
+    result = await betpanda.update_many({}, {"$set": {"msg_general": 0, "missions": []}})
     return {
         "success": True,
         "modified_users": result.modified_count,

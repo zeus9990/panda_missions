@@ -1,23 +1,25 @@
 # Cog: XP Earning and Role-Management Rules
+import re
 import random
 import discord
 from discord.ext import commands
-import config
 from cachetools import TTLCache
-from database import xp_update, complete_mission, update_user_rank
-import re
 from tg_auto import send_telegram_message
+from database import xp_update, complete_mission, update_user_rank
+from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS, RANK_THRESHOLDS
+
+
 
 class XPCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.cooldown_cache = TTLCache(maxsize=10_000, ttl=config.COOLDOWN_SECONDS)
+        self.cooldown_cache = TTLCache(maxsize=10_000, ttl=COOLDOWN_SECONDS)
 
     def calculate_message_xp(self, message_content: str) -> int:
         """Calculate dynamic XP reward based on message character length."""
         content_length = len(message_content)
         
-        for rule in config.XP_LENGTH_RULES:
+        for rule in XP_LENGTH_RULES:
             if content_length <= rule["max_len"]:
                 return random.randint(rule["min_xp"], rule["max_xp"])              
         # Default fallback
@@ -26,7 +28,7 @@ class XPCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
-            if message.channel.id == config.TWEET_CHANNEL_ID:
+            if message.channel.id == TWEET_CHANNEL_ID:
                 urls = re.findall(r'(https?://\S+)',message.content)
                 if not urls:
                     return
@@ -36,7 +38,7 @@ class XPCog(commands.Cog):
             return
 
         # Check if the message is in an XP-awarding channel
-        if message.channel.id not in config.XP_CHANNELS:
+        if message.channel.id not in XP_CHANNELS:
             return
 
         user_id = message.author.id
@@ -44,7 +46,7 @@ class XPCog(commands.Cog):
         last_xp_time = self.cooldown_cache.get(user_id)
         time_delta = (time - last_xp_time).total_seconds() if last_xp_time else float('inf')
         
-        if time_delta < config.COOLDOWN_SECONDS:
+        if time_delta < COOLDOWN_SECONDS:
             # Cooldown is active. We silent-ignore XP award to prevent farming.
             # But we still let normal discord messages pass without spamming notifications.
             return
@@ -54,13 +56,13 @@ class XPCog(commands.Cog):
         self.cooldown_cache[user_id] = time
 
         # Award XP in DB
-        msg_count = 1 if message.channel.id == config.GENERAL_CHAT_ID else 0
+        msg_count = 1 if message.channel.id == GENERAL_CHAT_ID else 0
         result = await xp_update(userid=user_id, username=message.author.name, xp_amount=xp_to_award, msg_count=msg_count)
         mission_xp = 0
         if result['success']:
-            weekly_message_count = result['xp']['weekly_msg_count']
-            if weekly_message_count >= config.WEEKLY_MSG_COUNT:
-                mission_data = config.WEEKLY_MISSIONS['msg_general']
+            weekly_message_count = result['xp']['msg_general']
+            mission_data = WEEKLY_MISSIONS['msg_general']
+            if weekly_message_count >= mission_data['count']:
                 mission_status = await complete_mission(userid=user_id, username=message.author.name, mission_key='msg_general')
                 if mission_status['success']:
                     embed = discord.Embed(
@@ -73,12 +75,12 @@ class XPCog(commands.Cog):
                     )
                     embed.timestamp = discord.utils.utcnow()
                     embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
     
                     # Log in staff channel
-                    staff_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
                     if staff_channel:
                         embed = discord.Embed(
                             title="📈 Mission Complete!",
@@ -98,7 +100,7 @@ class XPCog(commands.Cog):
             total_xp = result['xp']['total_xp'] + mission_xp
             eligible_rank = None
 
-            for rank in config.RANK_THRESHOLDS:
+            for rank in RANK_THRESHOLDS:
                 if total_xp >= rank["xp"]:
                     eligible_rank = rank
             
@@ -118,11 +120,11 @@ class XPCog(commands.Cog):
                     embed.set_thumbnail(url=message.author.display_avatar.url if message.author.display_avatar else None)
                     embed.timestamp = discord.utils.utcnow()
                     embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(config.MISSION_CHANNEL_ID)
+                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
                     if channel:
                         await channel.send(embed=embed)
 
-                    staff_channel = self.bot.get_channel(config.LOG_CHANNEL_ID)
+                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
                     if staff_channel:
                         embed = discord.Embed(
                             title="🏆 Rank Up!",
