@@ -172,7 +172,7 @@ class AdminCog(commands.Cog):
                 embed.set_footer(text="betpanda.io")
                 await log_channel.send(embed=staff_embed)
         else:
-            await interaction.followup.send("> ❌ User already rewarded for this particular mission!", ephemeral=True)
+            await interaction.followup.send(f"> {mission_data['message']}", ephemeral=True)
 
     @app_commands.command(name="admin_profile", description="Display mentioned users current rank, XP totals, and progress.")
     @app_commands.describe(member="Member whose profile needs to be checked")

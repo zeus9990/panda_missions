@@ -220,42 +220,84 @@ async def get_user_rank_position(userid: int) -> dict:
 
 # Update missions for users as they progress.
 async def complete_mission(userid: int, username: str, mission_key: str) -> dict:
-
-    # Ensure user exists
     await user_register(userid, username)
-
-    # Validate mission
     mission = WEEKLY_MISSIONS.get(mission_key)
 
     if not mission:
         return {"success": False, "message": "Invalid mission."}
-
+    
     mission_id = mission["mission_id"]
     xp_reward = mission["xp_reward"]
-    result = await betpanda.update_one(
-        {
-            "_id": userid,
-            "missions": {
-                "$ne": mission_id
-            }
-        },
-        {
-            "$addToSet": {
-                "missions": mission_id
-            },
-            "$inc": {
-                "total_xp": xp_reward,
-                "monthly_xp": xp_reward
-            }
-        }
-    )
+    required_count = mission.get("count")
 
-    if result.modified_count == 0:
-        return {"success": False, "message": "Mission already completed."}
+    # Counted missions
+    if required_count:
+        # Only increment if mission not already completed
+        inc_result = await betpanda.update_one(
+            {
+                "_id": userid,
+                "missions": {"$ne": mission_id}
+            },
+            {
+                "$inc": {mission_key: 1}
+            }
+        )
+
+        if inc_result.modified_count == 0:
+            return {"success": False, "message": "This Mission is already completed for this user."}
+
+        # Fetch the updated counter value
+        user = await betpanda.find_one(
+            {"_id": userid},
+            {mission_key: 1}
+        )
+        current_count = user.get(mission_key, 0)
+
+        # Not there yet return progress
+        if current_count < required_count:
+            return {
+                "success": False,
+                "message": f"Progress updated for <@{userid}>! ({current_count}/{required_count})",
+                "progress": {
+                    "current": current_count,
+                    "required": required_count
+                }
+            }
+
+        #Counter reached mark mission as complete and award XP
+        await betpanda.update_one(
+            {"_id": userid},
+            {
+                "$addToSet": {"missions": mission_id},
+                "$inc": {
+                    "total_xp": xp_reward,
+                    "monthly_xp": xp_reward
+                }
+            }
+        )
+
+    # Single-action mission
+    else:
+        result = await betpanda.update_one(
+            {
+                "_id": userid,
+                "missions": {"$ne": mission_id}
+            },
+            {
+                "$addToSet": {"missions": mission_id},
+                "$inc": {
+                    "total_xp": xp_reward,
+                    "monthly_xp": xp_reward
+                }
+            }
+        )
+
+        if result.modified_count == 0:
+            return {"success": False, "message": "This Mission is already completed for this user."}
 
     return {
         "success": True,
-        "message": f"Mission completed! +{xp_reward} XP",
+        "message": f"Mission completed for <@{userid}>! +{xp_reward} XP",
         "mission": {
             "mission_id": mission_id,
             "name": mission["name"],
@@ -263,7 +305,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
         }
     }
 
-# pdates the user's rank role_id in database.
+# Updates the user's rank role_id in database.
 async def update_user_rank(userid: int, role_id: int) -> dict:
     result = await betpanda.update_one(
         {
