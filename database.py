@@ -65,6 +65,11 @@ async def user_register(userid: int, username: str) -> dict:
                 "rank": 0,
                 "missions": [],
                 "msg_general": 0,
+                "correct_match_take": 0,
+                "predictions": 0,
+                "x_likes": 0,
+                "x_comments": 0,
+                "x_retweets": 0,
                 "created_at": today_str
             }
         },
