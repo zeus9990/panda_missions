@@ -53,7 +53,6 @@ class XPCog(commands.Cog):
         # Award XP in DB
         msg_count = 1 if message.channel.id == GENERAL_CHAT_ID else 0
         result = await xp_update(userid=user_id, username=message.author.name, xp_amount=xp_to_award, msg_count=msg_count)
-        mission_xp = 0
         if result['success']:
             weekly_message_count = result['xp']['msg_general']
             mission_data = WEEKLY_MISSIONS['msg_general']
@@ -90,11 +89,10 @@ class XPCog(commands.Cog):
                         embed.timestamp = discord.utils.utcnow()
                         await staff_channel.send(embed=embed)
                         embed.set_footer(text="betpanda.io")
-                    mission_xp += mission_data['xp_reward']
-
-            total_xp = result['xp']['total_xp'] + mission_xp
-            await rank_update_embed(interaction=message.interaction, userid=user_id, total_xp=total_xp)
-
+                    total_xp = mission_status['total_xp']
+                    await rank_update_embed(interaction=message, userid=user_id, total_xp=total_xp)
+            total_xp = result['xp']['total_xp']
+            await rank_update_embed(interaction=message, userid=user_id, total_xp=total_xp)
 
 async def setup(bot):
     await bot.add_cog(XPCog(bot))
