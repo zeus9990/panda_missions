@@ -21,7 +21,8 @@ initial_extensions = [
     "Cogs.reset",
     "Cogs.user",
     "Cogs.xp",
-    "Cogs.error_handler"
+    "Cogs.error_handler",
+    "Cogs.x_engage"
 ]
 
 @bot.event

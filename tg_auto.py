@@ -1,7 +1,14 @@
-import requests
+import httpx
+import re
 from config import TG_BOT_TOKEN, TG_CHAT_ID
 
-def send_telegram_message(link_url: str):
+async def send_telegram_message(message):
+    urls = re.findall(r'(https?://\S+)',message)
+    if not urls:
+        return
+    msg_url = urls[0]
+    link_url = msg_url.replace("https://x.com/","https://twitter.com/")
+
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
     text = f"🔥 New Tweet Alert Panda's 🐼\n\n{link_url}"
     payload = {
@@ -24,8 +31,6 @@ def send_telegram_message(link_url: str):
         }
     }
 
-    response = requests.post(
-        url,
-        json=payload
-    )
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=payload)
     print(f"Telegram Automation: {response.status_code}")

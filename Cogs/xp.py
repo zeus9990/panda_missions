@@ -5,9 +5,9 @@ import discord
 from discord.ext import commands
 from cachetools import TTLCache
 from tg_auto import send_telegram_message
-from database import xp_update, complete_mission, update_user_rank
-from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS, RANK_THRESHOLDS
-
+from database import xp_update, complete_mission
+from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS
+from rank_update import rank_update_embed
 
 
 class XPCog(commands.Cog):
@@ -29,12 +29,7 @@ class XPCog(commands.Cog):
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             if message.channel.id == TWEET_CHANNEL_ID:
-                urls = re.findall(r'(https?://\S+)',message.content)
-                if not urls:
-                    return
-                url = urls[0]
-                url = url.replace("https://x.com/","https://twitter.com/")
-                send_telegram_message(link_url=url)
+                await send_telegram_message(message=message.content)
             return
 
         # Check if the message is in an XP-awarding channel
@@ -98,46 +93,7 @@ class XPCog(commands.Cog):
                     mission_xp += mission_data['xp_reward']
 
             total_xp = result['xp']['total_xp'] + mission_xp
-            eligible_rank = None
-
-            for rank in RANK_THRESHOLDS:
-                if total_xp >= rank["xp"]:
-                    eligible_rank = rank
-            
-            if eligible_rank:
-                role_id = eligible_rank['role_id']
-                data = await update_user_rank(userid=user_id, role_id=role_id)
-                if data['success']:
-                    role = message.guild.get_role(role_id)
-                    await message.author.add_roles(role)
-                    embed = discord.Embed(
-                        title="🐼 Rank Up! Level Cleared!",
-                        description=f"**🎉 Congratulations {message.author.mention}**!\n"
-                                    f"● **You have reached the rank of:** <@&{role_id}>!\n"
-                                    f"● **Total Cumulative XP:** `{total_xp} XP`",
-                        color=discord.Color.gold()
-                    )
-                    embed.set_thumbnail(url=message.author.display_avatar.url if message.author.display_avatar else None)
-                    embed.timestamp = discord.utils.utcnow()
-                    embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
-                    if channel:
-                        await channel.send(embed=embed)
-
-                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
-                    if staff_channel:
-                        embed = discord.Embed(
-                            title="🏆 Rank Up!",
-                            description=f"**✧ User:** {message.author.mention}\n"
-                                        f"**✧ User ID:** {user_id}\n"
-                                        f"**✧ Role Assigned:** <@&{role_id}>\n"
-                                        f"**✧ Role ID:** {role_id}\n"
-                                        f"**✧ Reward Assigner:** Auto assigned.",
-                            color=discord.Color.blue()                                      
-                        )
-                        embed.timestamp = discord.utils.utcnow()
-                        embed.set_footer(text="betpanda.io")
-                        await staff_channel.send(embed=embed)
+            await rank_update_embed(interaction=message.interaction, userid=user_id, total_xp=total_xp)
 
 
 async def setup(bot):

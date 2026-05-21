@@ -3,4 +3,4 @@ discord.py
 motor
 pymongo
 python-dotenv
-requests
+httpx

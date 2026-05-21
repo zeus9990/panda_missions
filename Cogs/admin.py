@@ -2,8 +2,9 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from database import xp_update, update_user_rank, complete_mission, user_details, get_user_rank_position
+from database import xp_update, complete_mission, user_details, get_user_rank_position
 from config import ADMIN_ROLE_IDS, LOG_CHANNEL_ID, RANK_THRESHOLDS, MISSION_CHANNEL_ID, WEEKLY_MISSIONS
+from rank_update import rank_update_embed
 
 class AdminCog(commands.Cog):
     def __init__(self, bot):
@@ -70,46 +71,7 @@ class AdminCog(commands.Cog):
 
             # Handle rank progression
             total_xp = xp_change['xp']['total_xp']
-            eligible_rank = None
-
-            for rank in RANK_THRESHOLDS:
-                if total_xp >= rank["xp"]:
-                    eligible_rank = rank
-            
-            if eligible_rank:
-                role_id = eligible_rank['role_id']
-                data = await update_user_rank(userid=member.id, role_id=role_id)
-                if data['success']:
-                    role = interaction.guild.get_role(role_id)
-                    await member.add_roles(role)
-                    embed = discord.Embed(
-                        title="🐼 Rank Up! Level Cleared!",
-                        description=f"**🎉 Congratulations {member.mention}**!\n"
-                                    f"● **You have reached the rank of: ** <@&{role_id}>!\n"
-                                    f"● **Total Cumulative XP: ** {total_xp} XP",
-                        color=discord.Color.gold()
-                    )
-                    embed.set_thumbnail(url=member.display_avatar.url if member.display_avatar else None)
-                    embed.timestamp = discord.utils.utcnow()
-                    embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
-                    if channel:
-                        await channel.send(embed=embed)
-
-                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
-                    if staff_channel:
-                        embed = discord.Embed(
-                            title="🏆 Rank Up!",
-                            description=f"**✧ User:** {member.mention}\n"
-                                        f"**✧ User ID:** {member.id}\n"
-                                        f"**✧ Role Assigned:** <@&{role_id}>\n"
-                                        f"**✧ Role ID:** {role_id}\n"
-                                        f"**✧ Reward Assigner:** Auto assigned.",
-                            color=discord.Color.blue()                                      
-                        )
-                        embed.timestamp = discord.utils.utcnow()
-                        embed.set_footer(text="betpanda.io")
-                        await staff_channel.send(embed=embed)
+            await rank_update_embed(interaction=interaction, userid=member.id, total_xp=total_xp)
 
     @app_commands.command(name="verify_mission", description="Manually approve and award XP for user weekly missions (Moderators only).")
     @app_commands.describe(member="The member to verify mission for")
@@ -171,6 +133,8 @@ class AdminCog(commands.Cog):
                 embed.timestamp = discord.utils.utcnow()
                 embed.set_footer(text="betpanda.io")
                 await log_channel.send(embed=staff_embed)
+            
+            await rank_update_embed(interaction=interaction, userid=member.id, total_xp=mission_data['total_xp'])
         else:
             await interaction.followup.send(f"> {mission_data['message']}", ephemeral=True)
 

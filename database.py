@@ -14,6 +14,11 @@ import asyncio
 #     "rank": 723873773873472472,
 #     "missions": [], #mission_ids of completed missions goes in here
 #     "msg_general": 77,
+#     "correct_match_take": 0,
+#     "predictions": 0,
+#     "x_comments": 0,
+#     "x_retweets": 0,
+#     "x_likes": 0,
 #     "created_at": "23-08-26"
 # }
 
@@ -258,7 +263,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
         )
         current_count = user.get(mission_key, 0)
 
-        # Not there yet return progress
+        # Not there yet, return progress
         if current_count < required_count:
             return {
                 "success": False,
@@ -269,8 +274,8 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
                 }
             }
 
-        #Counter reached mark mission as complete and award XP
-        await betpanda.update_one(
+        # Counter reached — mark mission as complete and award XP atomically
+        updated_user = await betpanda.find_one_and_update(
             {"_id": userid},
             {
                 "$addToSet": {"missions": mission_id},
@@ -278,7 +283,8 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
                     "total_xp": xp_reward,
                     "monthly_xp": xp_reward
                 }
-            }
+            },
+            return_document=True
         )
 
     # Single-action mission
@@ -300,9 +306,12 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
         if result.modified_count == 0:
             return {"success": False, "message": "This Mission is already completed for this user."}
 
+        updated_user = await betpanda.find_one({"_id": userid}, {"total_xp": 1})
+
     return {
         "success": True,
         "message": f"Mission completed for <@{userid}>! +{xp_reward} XP",
+        "total_xp": updated_user.get("total_xp", 0),
         "mission": {
             "mission_id": mission_id,
             "name": mission["name"],
