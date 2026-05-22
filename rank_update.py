@@ -3,7 +3,11 @@ from config import RANK_THRESHOLDS, MISSION_CHANNEL_ID, LOG_CHANNEL_ID
 from database import update_user_rank
 
 async def rank_update_embed(interaction: discord.Interaction, userid: int, total_xp: int) -> None:
-    member = interaction.guild.get_member(userid)
+    try:
+        member = await interaction.guild.fetch_member(userid)
+    except discord.NotFound:
+        print(f"[RankUpdate] Member {userid} not in server, skipping rank update.")
+        return
     eligible_rank = None
 
     for rank in RANK_THRESHOLDS:
