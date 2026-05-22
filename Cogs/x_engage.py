@@ -112,40 +112,45 @@ class XEngageCog(commands.Cog):
                 await asyncio.sleep(5)
                 mission_data = await complete_mission(userid=discord_id, username=username, mission_key=mission_key)
                 if mission_data['success']:
-                    user_object = self.bot.get_user(discord_id)
-                    embed = discord.Embed(
-                        title="🎉 Weekly Mission Completed!",
-                        description=f"**Congratulations {user_object.mention}!**\n"
-                                    f"● **You completed:** {mission_data['mission']['name']}\n"
-                                    f"● **Mission Description:** {mission_data['mission']['description']}\n"
-                                    f"● **Rewarded:** `+{mission_data['mission']['xp_reward']} XP`",
-                        color=discord.Color.green()
-                    )
-                    embed.timestamp = discord.utils.utcnow()
-                    embed.set_footer(text="betpanda.io")
-                    channel = self.bot.get_channel(MISSION_CHANNEL_ID)
-                    if channel:
-                        await channel.send(embed=embed)
-    
-                    # Log in staff channel
-                    staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
-                    if staff_channel:
+                    try:
+                        user_object = await self.bot.fetch_user(discord_id)
+                    except discord.NotFound:
+                        print(f"[XEngage] Could not fetch user {discord_id}, skipping embed.")
+                        user_object = None
+                    if user_object:
                         embed = discord.Embed(
-                            title="📈 Mission Complete!",
-                            description=f"**✧ User:** {user_object.mention}\n"
-                                        f"**✧ User ID:** {user_object.id}\n"
-                                        f"**✧ Mission Title:** {mission_data['mission']['name']}\n"
-                                        f"**✧ Mission ID:** `{mission_data['mission']['mission_id']}`\n"
-                                        f"**✧ Mission Reward:** `+{mission_data['mission']['xp_reward']} XP`\n"
-                                        f"**✧ Reward Assigner:** Auto assigned.",
-                            color=discord.Color.blue()                                      
+                            title="🎉 Weekly Mission Completed!",
+                            description=f"**Congratulations {user_object.mention}!**\n"
+                                        f"● **You completed:** {mission_data['mission']['name']}\n"
+                                        f"● **Mission Description:** {mission_data['mission']['description']}\n"
+                                        f"● **Rewarded:** `+{mission_data['mission']['xp_reward']} XP`",
+                            color=discord.Color.green()
                         )
                         embed.timestamp = discord.utils.utcnow()
                         embed.set_footer(text="betpanda.io")
-                        await staff_channel.send(embed=embed)
+                        channel = self.bot.get_channel(MISSION_CHANNEL_ID)
+                        if channel:
+                            await channel.send(embed=embed)
+        
+                        # Log in staff channel
+                        staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
+                        if staff_channel:
+                            embed = discord.Embed(
+                                title="📈 Mission Complete!",
+                                description=f"**✧ User:** {user_object.mention}\n"
+                                            f"**✧ User ID:** {user_object.id}\n"
+                                            f"**✧ Mission Title:** {mission_data['mission']['name']}\n"
+                                            f"**✧ Mission ID:** `{mission_data['mission']['mission_id']}`\n"
+                                            f"**✧ Mission Reward:** `+{mission_data['mission']['xp_reward']} XP`\n"
+                                            f"**✧ Reward Assigner:** Auto assigned.",
+                                color=discord.Color.blue()                                      
+                            )
+                            embed.timestamp = discord.utils.utcnow()
+                            embed.set_footer(text="betpanda.io")
+                            await staff_channel.send(embed=embed)
 
-                    total_xp = mission_data['total_xp']
-                    await rank_update_embed(interaction=staff_channel, userid=discord_id, total_xp=total_xp)
+                        total_xp = mission_data['total_xp']
+                        await rank_update_embed(interaction=staff_channel, userid=discord_id, total_xp=total_xp)
         await update_engage_cache(userid=discord_id, engage_points=api_points)
         return increments
     
