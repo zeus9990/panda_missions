@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ENGAGE_API_KEY = os.getenv("ENGAGE_API")                                # Engage API used from engage bot to track points.
+ENGAGE_API_KEY = os.getenv("ENGAGE_API_KEY")                        # Engage API used from engage bot to track points.
 BOT_TOKEN = os.getenv("BOT_TOKEN")                                  # Discord bot token from discord developer portal.
 DB_URL = os.getenv("DB_URL")                                        # Database cluster connection url from MongoDB.
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")                            # TG bot token from bot father.
