@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import discord
+from typing import Optional
 from discord.ext import commands, tasks
 from config import ENGAGE_API_KEY, LOG_CHANNEL_ID, MISSION_CHANNEL_ID, ADMIN_ROLE_IDS
 from database import user_details, user_register, complete_mission, update_engage_cache
@@ -21,7 +22,7 @@ class XEngageCog(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot  = bot
-        self._session: aiohttp.ClientSession | None = None
+        self._session: Optional[aiohttp.ClientSession] = None
         self.engage_loop.start()
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -36,7 +37,7 @@ class XEngageCog(commands.Cog):
         if self._session and not self._session.closed:
             await self._session.close()
 
-    async def _fetch_page(self, page: int) -> dict | None:
+    async def _fetch_page(self, page: int) -> Optional[dict]:
         session = await self._get_session()
         url = f"https://engages.io/api/v1/leaderboard"
         params  = {"page": page, "sortBy": "points"}
