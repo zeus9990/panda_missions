@@ -87,8 +87,9 @@ class XPCog(commands.Cog):
                             color=discord.Color.blue()                                      
                         )
                         embed.timestamp = discord.utils.utcnow()
-                        await staff_channel.send(embed=embed)
                         embed.set_footer(text="betpanda.io")
+                        await staff_channel.send(embed=embed)
+                        
                     total_xp = mission_status['total_xp']
                     await rank_update_embed(interaction=message, userid=user_id, total_xp=total_xp)
             total_xp = result['xp']['total_xp']

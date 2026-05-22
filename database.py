@@ -19,6 +19,7 @@ import asyncio
 #     "x_comments": 0,
 #     "x_retweets": 0,
 #     "x_likes": 0,
+#     "engage_points": 0,
 #     "created_at": "23-08-26"
 # }
 
@@ -75,6 +76,7 @@ async def user_register(userid: int, username: str) -> dict:
                 "x_likes": 0,
                 "x_comments": 0,
                 "x_retweets": 0,
+                "engage_points": 0,
                 "created_at": today_str
             }
         },
@@ -236,6 +238,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
     if not mission:
         return {"success": False, "message": "Invalid mission."}
     
+    mission_desc = mission['description']
     mission_id = mission["mission_id"]
     xp_reward = mission["xp_reward"]
     required_count = mission.get("count")
@@ -313,6 +316,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
         "message": f"Mission completed for <@{userid}>! +{xp_reward} XP",
         "total_xp": updated_user.get("total_xp", 0),
         "mission": {
+            "description": mission_desc,
             "mission_id": mission_id,
             "name": mission["name"],
             "xp_reward": xp_reward
@@ -337,6 +341,14 @@ async def update_user_rank(userid: int, role_id: int) -> dict:
         return {"success": False, "message": "User already has this rank."}
 
     return {"success": True, "message": "Rank updated successfully.", "role_id": role_id}
+
+# Update engage points cache for user.
+async def update_engage_cache(userid: int, engage_points: int) -> bool:
+    result = await betpanda.update_one(
+        {"_id": userid},
+        {"$set": {"engage_points": engage_points}}
+    )
+    return result.modified_count > 0
 
 # Weekly reset
 async def weekly_reset() -> dict:

@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ENGAGE_API_KEY = os.getenv("ENGAGE_API")                                # Engage API used from engage bot to track points.
 BOT_TOKEN = os.getenv("BOT_TOKEN")                                  # Discord bot token from discord developer portal.
 DB_URL = os.getenv("DB_URL")                                        # Database cluster connection url from MongoDB.
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")                            # TG bot token from bot father.
@@ -105,7 +106,7 @@ WEEKLY_MISSIONS = {
         "mission_id": "XPS01",
         "name": "Like 5 Betpanda posts on X",
         "xp_reward": 100,
-        "auto_track": False,
+        "auto_track": True,
         "status": "Active",
         "description": "Post 5 Betpanda-related posts on X.",
         "count": 5
@@ -114,7 +115,7 @@ WEEKLY_MISSIONS = {
         "mission_id": "XRT02",
         "name": "Retweet 5 Betpanda posts on X",
         "xp_reward": 150,
-        "auto_track": False,
+        "auto_track": True,
         "status": "Active",
         "description": "Retweet 5 official Betpanda posts on X.",
         "count": 5
@@ -123,7 +124,7 @@ WEEKLY_MISSIONS = {
         "mission_id": "XCM03",
         "name": "Comment on 5 Betpanda posts on X",
         "xp_reward": 250,
-        "auto_track": False,
+        "auto_track": True,
         "status": "Active",
         "description": "Leave a comment on 5 Betpanda posts on X.",
         "count": 5
