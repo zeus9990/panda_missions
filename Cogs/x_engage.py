@@ -147,6 +147,7 @@ class XEngageCog(commands.Cog):
                     total_xp = mission_data['total_xp']
                     await rank_update_embed(interaction=staff_channel, userid=discord_id, total_xp=total_xp)
         await update_engage_cache(userid=discord_id, engage_points=api_points)
+        return increments
     
     
     @discord.app_commands.command(name="sync_engage", description="Manually trigger an engagement sync right now.")
