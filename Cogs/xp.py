@@ -7,7 +7,7 @@ from tg_auto import send_telegram_message
 from database import xp_update, complete_mission, update_streak
 from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS
 from rank_update import rank_update_embed
-
+from typing import Optional
 
 class XPCog(commands.Cog):
     def __init__(self, bot):
@@ -84,7 +84,7 @@ class XPCog(commands.Cog):
         await self.send_mission_embeds(message, mission_result["mission"])
         await rank_update_embed(interaction=message, userid=user_id, total_xp=mission_result["total_xp"])
 
-    async def handle_msg_general_mission(self, message: discord.Message, weekly_message_count: int) -> int | None:
+    async def handle_msg_general_mission(self, message: discord.Message, weekly_message_count: int) -> Optional[int]:
         """Check and handle the weekly message count mission. Returns total_xp if mission completed."""
         user_id = message.author.id
         mission_data = WEEKLY_MISSIONS["msg_general"]
