@@ -130,12 +130,12 @@ WEEKLY_MISSIONS = {
         "count": 5
     },
     "daily_streak": {
-    "mission_id": "STK01",
-    "name": "5 Day Message Streak",
-    "xp_reward": 100,
-    "auto_track": True,
-    "status": "Inactive",
-    "description": "Send a message in #general-chat for 5 consecutive days.",
-    "count": 5
+        "mission_id": "STK01",
+        "name": "5 Day Message Streak",
+        "xp_reward": 100,
+        "auto_track": True,
+        "status": "Inactive",
+        "description": "Send a message in #general-chat for 5 consecutive days.",
+        "count": 5
     },
 }

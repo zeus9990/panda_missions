@@ -39,30 +39,31 @@ class MissionsCog(commands.Cog):
             embed.set_author(name="🐼 Weekly Panda Mission Board", icon_url=avatar_url)
         
             for key, details in WEEKLY_MISSIONS.items():
-                mission_id = details['mission_id']
-                is_completed = mission_id in completed_mission_ids
-                status_emoji = "✅" if is_completed else "⏳"
-                status_text = "Completed" if is_completed else "In Progress"
-                status_color = "🟢" if is_completed else "🟠"
-                tracking_info = "🤖 Auto-tracked" if details['auto_track'] else "🛡️ Moderator Verified"
-                value = (
-                    f"● **XP Award:** `{details['xp_reward']:,} XP`\n"
-                    f"● **Status:** {status_emoji} {status_text}\n"
-                    f"● **Type:** {tracking_info}\n"
-                )
+                if details['status'] == "Active":
+                    mission_id = details['mission_id']
+                    is_completed = mission_id in completed_mission_ids
+                    status_emoji = "✅" if is_completed else "⏳"
+                    status_text = "Completed" if is_completed else "In Progress"
+                    status_color = "🟢" if is_completed else "🟠"
+                    tracking_info = "🤖 Auto-tracked" if details['auto_track'] else "🛡️ Moderator Verified"
+                    value = (
+                        f"● **XP Award:** `{details['xp_reward']:,} XP`\n"
+                        f"● **Status:** {status_emoji} {status_text}\n"
+                        f"● **Type:** {tracking_info}\n"
+                    )
 
-                # Add progress only if count exists
-                if details.get("count") is not None:
-                    progress = f"{details['count'] if is_completed else user_data['message'][key]}/{details['count']}"
-                    value += f"● **Progress:** `{progress}`\n"
+                    # Add progress only if count exists
+                    if details.get("count") is not None:
+                        progress = f"{details['count'] if is_completed else user_data['message'][key]}/{details['count']}"
+                        value += f"● **Progress:** `{progress}`\n"
 
-                value += f"*{details['description']}*"
-                embed.add_field(
-                    name=f"{status_color} {details['name']}",
-                    value=value,
-                    inline=False
-                )
-        
+                    value += f"*{details['description']}*"
+                    embed.add_field(
+                        name=f"{status_color} {details['name']}",
+                        value=value,
+                        inline=False
+                    )
+            
             embed.set_footer(text=f"Weekly missions reset, but total XP stacks forever! ● Total XP: {user_data['message']['total_xp']:,}")
             await interaction.followup.send(embed=embed)
         else:
