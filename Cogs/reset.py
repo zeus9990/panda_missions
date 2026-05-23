@@ -17,41 +17,10 @@ class ResetCog(commands.Cog):
 
     @tasks.loop(time=MIDNIGHT_UTC)
     async def reset_check(self):
-        """Background task running daily. Resets the monthly XP values on the 1st of the month. And Weekly reset of missions"""
+        """Background task running daily at midnight UTC. Weekly reset of missions on Monday."""
         today = datetime.now(timezone.utc)
-        if today.day == 1:
-            print("Detected 1st of the month! Triggering automated Monthly XP Reset.")
-            result = await monthly_reset()
 
-            mission_channel = self.bot.get_channel(MISSION_CHANNEL_ID)
-            if mission_channel:
-                embed = discord.Embed(
-                    title="📅 New Month Reset Complete!",
-                    description="● The monthly XP leaderboard has been officially archived and reset for the new month!\n"
-                                "● Total cumulative XP and server ranks remain fully untouched. Let the new race begin!",
-                    color=discord.Color.orange(),
-                    timestamp=discord.utils.utcnow()
-                )
-                embed.set_footer(text="betpanda.io")
-                await mission_channel.send(embed=embed)
-
-            log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
-            if log_channel:
-                embed = discord.Embed(
-                    title="📅 Monthly Reset — Snapshot",
-                    description="📊 Monthly reset complete! Here's the snapshot before the wipe:",
-                    color=discord.Color.blue(),
-                    timestamp=discord.utils.utcnow()
-                )
-                embed.add_field(name="● Users Modified", value=str(result["modified_users"]), inline=True)
-                embed.add_field(name="● Reset Type", value="Monthly", inline=True)
-                embed.add_field(name="● Snapshot File", value=f"`{result['filename']}`", inline=False)
-                embed.set_footer(text="Data captured before reset")
-                with result["file"] as fp:
-                    await log_channel.send(embed=embed)
-                    await log_channel.send(file=discord.File(fp=fp, filename=result["filename"]))
-
-        if today.weekday() == 6: #Sunday
+        if today.weekday() == 0:
             print("Triggering automated Weekly Mission Reset.")
             result = await weekly_reset()
 
@@ -82,10 +51,47 @@ class ResetCog(commands.Cog):
                     await log_channel.send(embed=embed)
                     await log_channel.send(file=discord.File(fp=fp, filename=result["filename"]))
 
-
     @reset_check.before_loop
     async def before_reset_check(self):
         await self.bot.wait_until_ready()
+
+    @discord.app_commands.command(name="monthly_reset", description="Manually trigger the monthly XP leaderboard reset.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def monthly_reset_command(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        result = await monthly_reset()
+
+        mission_channel = self.bot.get_channel(MISSION_CHANNEL_ID)
+        if mission_channel:
+            embed = discord.Embed(
+                title="📅 New Month Reset Complete!",
+                description="● The monthly XP leaderboard has been officially archived and reset for the new month!\n"
+                            "● Total cumulative XP and server ranks remain fully untouched. Let the new race begin!",
+                color=discord.Color.orange(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.set_footer(text="betpanda.io")
+            await mission_channel.send(embed=embed)
+
+        log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            embed = discord.Embed(
+                title="📅 Monthly Reset — Snapshot",
+                description="📊 Monthly reset complete! Here's the snapshot before the wipe:",
+                color=discord.Color.blue(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.add_field(name="● Users Modified", value=str(result["modified_users"]), inline=True)
+            embed.add_field(name="● Reset Type", value="Monthly", inline=True)
+            embed.add_field(name="● Snapshot File", value=f"`{result['filename']}`", inline=False)
+            embed.set_footer(text="Data captured before reset")
+            with result["file"] as fp:
+                await log_channel.send(embed=embed)
+                await log_channel.send(file=discord.File(fp=fp, filename=result["filename"]))
+
+        await interaction.followup.send("> ✅ Monthly reset completed successfully.", ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(ResetCog(bot))

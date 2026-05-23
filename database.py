@@ -1,6 +1,6 @@
 import motor.motor_asyncio
 from pymongo import ReturnDocument
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from config import WEEKLY_MISSIONS, DB_URL
 import io
 import csv
@@ -20,6 +20,8 @@ import asyncio
 #     "x_retweets": 0,
 #     "x_likes": 0,
 #     "engage_points": 0,
+#     "daily_streak": 0,
+#     "last_msg_date": None,
 #     "created_at": "23-08-26"
 # }
 
@@ -77,6 +79,8 @@ async def user_register(userid: int, username: str) -> dict:
                 "x_comments": 0,
                 "x_retweets": 0,
                 "engage_points": 0,
+                "daily_streak": 0,
+                "last_msg_date": None,
                 "created_at": today_str
             }
         },
@@ -238,6 +242,9 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
     if not mission:
         return {"success": False, "message": "Invalid mission."}
     
+    if not mission.get("active", False):
+        return {"success": False, "message": "This mission is not active."}
+    
     mission_desc = mission['description']
     mission_id = mission["mission_id"]
     xp_reward = mission["xp_reward"]
@@ -350,10 +357,60 @@ async def update_engage_cache(userid: int, engage_points: int) -> bool:
     )
     return result.modified_count > 0
 
+# Update daily message streak
+async def update_streak(userid: int) -> dict:
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    user = await betpanda.find_one({"_id": userid}, {"daily_streak": 1, "last_msg_date": 1})
+    if not user:
+        return {"success": False, "streak": 0}
+
+    last_msg_date = user.get("last_msg_date")
+    current_streak = user.get("daily_streak", 0)
+
+    if last_msg_date == today:
+        # Already messaged today, no streak change
+        return {"success": False, "streak": current_streak}
+    
+    if last_msg_date:
+        last_date = date.fromisoformat(last_msg_date)
+        today_date = date.fromisoformat(today)
+        diff = (today_date - last_date).days
+        new_streak = current_streak + 1 if diff == 1 else 1  # consecutive = +1, else reset
+    else:
+        new_streak = 1
+
+    updated_user = await betpanda.find_one_and_update(
+        {"_id": userid},
+        {"$set": {
+            "daily_streak": new_streak,
+            "last_msg_date": today
+        }},
+        return_document=True
+    )
+
+    return {
+        "success": True,
+        "streak": updated_user["daily_streak"]
+    }
+
 # Weekly reset
 async def weekly_reset() -> dict:
     file, filename = await generate_snapshot_csv("weekly")
-    result = await betpanda.update_many({}, {"$set": {"msg_general": 0, "missions": []}})
+    result = await betpanda.update_many(
+        {},
+        {"$set": {
+            "msg_general": 0,
+            "missions": [],
+            "correct_match_take": 0,
+            "predictions": 0,
+            "x_comments": 0,
+            "x_retweets": 0,
+            "x_likes": 0,
+            "daily_streak": 0,
+            "last_msg_date": None
+        }}
+    )
     return {
         "success": True,
         "modified_users": result.modified_count,

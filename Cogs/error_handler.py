@@ -16,7 +16,9 @@ class ErrorHandlerCog(commands.Cog):
 
         if isinstance(original, discord.NotFound) and original.code == 10062:
             return
-
+        if isinstance(original, app_commands.MissingPermissions):
+            await self._safe_send(interaction, "> ❌ You need Administrator permissions to run this command.")
+            return
         if isinstance(original, discord.Forbidden):
             await self._safe_send(interaction, "> ❌ I don't have permission to do that.")
             return
