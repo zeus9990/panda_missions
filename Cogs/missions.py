@@ -16,7 +16,7 @@ class MissionsCog(commands.Cog):
         user_data = await user_details(userid=interaction.user.id)
         if user_data['success']:
             completed_mission_ids = user_data['message']['missions']
-            total_missions = len(WEEKLY_MISSIONS)
+            total_missions = sum(1 for m in WEEKLY_MISSIONS.values() if m.get("status") == "Active")
             completed_count = sum(
                 1 for details in WEEKLY_MISSIONS.values()
                 if details['mission_id'] in completed_mission_ids
