@@ -242,7 +242,7 @@ async def complete_mission(userid: int, username: str, mission_key: str) -> dict
     if not mission:
         return {"success": False, "message": "Invalid mission."}
     
-    if not mission.get("active", False):
+    if mission.get("status") != "Active":
         return {"success": False, "message": "This mission is not active."}
     
     mission_desc = mission['description']
