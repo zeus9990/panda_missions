@@ -134,7 +134,7 @@ WEEKLY_MISSIONS = {
         "name": "5 Day Message Streak",
         "xp_reward": 100,
         "auto_track": True,
-        "status": "Inactive",
+        "status": "Active",
         "description": "Send a message in #general-chat for 5 consecutive days.",
         "count": 5
     },
