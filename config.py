@@ -74,7 +74,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Chat and get involved! Messages in #general-chat grant a bonus upon reaching 20 posts.",
-        "count": 20
+        "count": 30
     },
     "predictions": {
         "mission_id": "KTSR9",
@@ -91,7 +91,8 @@ WEEKLY_MISSIONS = {
         "xp_reward": 100,
         "auto_track": False,
         "status": "Active",
-        "description": "Post an original meme in the #memes channel."
+        "description": "Post an original meme in the #memes channel.",
+        "count": 2
     },
     "correct_match_take": {
         "mission_id": "RTW54",
@@ -100,7 +101,7 @@ WEEKLY_MISSIONS = {
         "auto_track": False,
         "status": "Active",
         "description": "Give your analytical take in #match-of-the-day on two separate occasions.",
-        "count": 2
+        "count": 1
     },
     "x_likes": {
         "mission_id": "XPS01",
@@ -109,7 +110,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Post 5 Betpanda-related posts on X.",
-        "count": 5
+        "count": 10
     },
     "x_retweets": {
         "mission_id": "XRT02",
@@ -118,7 +119,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Retweet 5 official Betpanda posts on X.",
-        "count": 5
+        "count": 10
     },
     "x_comments": {
         "mission_id": "XCM03",
@@ -127,15 +128,15 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Leave a comment on 5 Betpanda posts on X.",
-        "count": 5
+        "count": 10
     },
     "daily_streak": {
         "mission_id": "STK01",
-        "name": "5 Day Message Streak",
-        "xp_reward": 100,
+        "name": "7 Day Message Streak",
+        "xp_reward": 300,
         "auto_track": True,
         "status": "Active",
-        "description": "Send a message in #general-chat for 5 consecutive days.",
-        "count": 5
+        "description": "Send a message in #general-chat for 7 consecutive days.",
+        "count": 7
     },
 }
