@@ -22,8 +22,8 @@ TG_CHAT_ID = -1002194384512                                         # Telegram c
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
-    {"max_len": 10, "min_xp": 2, "max_xp": 5},
-    {"max_len": 50, "min_xp": 5, "max_xp": 10}
+    {"max_len": 10, "min_xp": 2, "max_xp": 4},
+    {"max_len": 50, "min_xp": 4, "max_xp": 8}
 ]
 
 # Channel IDs that award XP (Channel IDs)
@@ -69,11 +69,11 @@ WEEKLY_MISSIONS = {
     },
     "msg_general": {
         "mission_id": "GDF90",
-        "name": "Send 20 messages in #general-chat",
+        "name": "Send 30 messages in #general-chat",
         "xp_reward": 200,
         "auto_track": True,
         "status": "Active",
-        "description": "Chat and get involved! Messages in #general-chat grant a bonus upon reaching 20 posts.",
+        "description": "Chat and get involved! Messages in #general-chat grant a bonus upon reaching 30 posts.",
         "count": 30
     },
     "predictions": {
@@ -87,11 +87,11 @@ WEEKLY_MISSIONS = {
     },
     "memes": {
         "mission_id": "UEH86",
-        "name": "Post a meme in #memes",
+        "name": "Post 2 memes in #memes",
         "xp_reward": 100,
         "auto_track": False,
         "status": "Active",
-        "description": "Post an original meme in the #memes channel.",
+        "description": "Post 2 original memes in the #memes channel.",
         "count": 2
     },
     "correct_match_take": {
@@ -105,29 +105,29 @@ WEEKLY_MISSIONS = {
     },
     "x_likes": {
         "mission_id": "XPS01",
-        "name": "Like 5 Betpanda posts on X",
+        "name": "Like 10 Betpanda posts on X",
         "xp_reward": 100,
         "auto_track": True,
         "status": "Active",
-        "description": "Post 5 Betpanda-related posts on X.",
+        "description": "Post 10 Betpanda-related posts on X.",
         "count": 10
     },
     "x_retweets": {
         "mission_id": "XRT02",
-        "name": "Retweet 5 Betpanda posts on X",
+        "name": "Retweet 10 Betpanda posts on X",
         "xp_reward": 150,
         "auto_track": True,
         "status": "Active",
-        "description": "Retweet 5 official Betpanda posts on X.",
+        "description": "Retweet 10 official Betpanda posts on X.",
         "count": 10
     },
     "x_comments": {
         "mission_id": "XCM03",
-        "name": "Comment on 5 Betpanda posts on X",
+        "name": "Comment on 10 Betpanda posts on X",
         "xp_reward": 250,
         "auto_track": True,
         "status": "Active",
-        "description": "Leave a comment on 5 Betpanda posts on X.",
+        "description": "Leave a comment on 10 Betpanda posts on X.",
         "count": 10
     },
     "daily_streak": {
@@ -138,5 +138,13 @@ WEEKLY_MISSIONS = {
         "status": "Active",
         "description": "Send a message in #general-chat for 7 consecutive days.",
         "count": 7
+    },
+    "trivia": {
+        "mission_id": "TRI01",
+        "name": "Quick Trivia",
+        "xp_reward": 200,
+        "auto_track": False,
+        "status": "Active",
+        "description": "Be in the top 5 to answer a trivia question in #general-chat and get rewarded."
     },
 }

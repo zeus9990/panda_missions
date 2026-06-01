@@ -20,7 +20,7 @@ class XPCog(commands.Cog):
         for rule in XP_LENGTH_RULES:
             if content_length <= rule["max_len"]:
                 return random.randint(rule["min_xp"], rule["max_xp"])
-        return random.randint(5, 15)
+        return random.randint(2, 8)
 
     async def send_mission_embeds(self, message: discord.Message, mission_data: dict) -> None:
         """Send mission completion embed to mission channel and log channel."""
