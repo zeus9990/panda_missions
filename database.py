@@ -135,11 +135,10 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
             "message": f"Sorry <@{userid}> you're not registered yet, send a message in general chat to register yourself."
         }
 
-    # Single aggregation pipeline gets top 10 + current user rank atomically
     pipeline = [
         {
             "$setWindowFields": {
-                "sortBy": {xp_field: -1},
+                "sortBy": {xp_field: -1, "username": 1},
                 "output": {
                     "position": {"$rank": {}}
                 }
@@ -167,6 +166,7 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
 
     top_10 = []
     user_entry = None
+    seen_slots = 0
 
     for entry in results:
         formatted = {
@@ -174,10 +174,12 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
             "username": entry["username"],
             "xp": entry.get(xp_field, 0)
         }
-        if entry["position"] <= 10:
-            top_10.append(formatted)
         if entry["_id"] == userid:
             user_entry = formatted
+        if entry["position"] <= 10 and seen_slots < 10:
+            top_10.append(formatted)
+            seen_slots += 1
+
     top_10.sort(key=lambda x: x["position"])
 
     return {
