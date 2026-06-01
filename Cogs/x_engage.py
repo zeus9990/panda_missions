@@ -44,7 +44,7 @@ class XEngageCog(commands.Cog):
         try:
             async with session.get(url, params=params) as resp:
                 if resp.status != 200:
-                    print("[XEngage] request error: {resp.status}")
+                    print(f"[XEngage] request error: {resp.status}")
                     return None
                 return await resp.json()
         except aiohttp.ClientError as exc:
@@ -97,7 +97,8 @@ class XEngageCog(commands.Cog):
             await user_register(userid=discord_id, username=username)
             cached_points = 0
         else:
-            cached_points: int = user.get("engage_points", 0)
+            user_doc = user["message"]
+            cached_points: int = user_doc.get("engage_points", 0)
 
         diff = api_points - cached_points
         if diff <= 0:
@@ -162,7 +163,7 @@ class XEngageCog(commands.Cog):
             return
  
         await interaction.response.send_message("> ⏳ Running engagement sync...", ephemeral=True)
-        await self.engage_loop()
+        await self.engage_loop.coro(self)
         await interaction.followup.send("> ✅ Engagement sync complete.", ephemeral=True)
  
     @discord.app_commands.command(name="engage_status", description="Show cached engage points for a member.")
