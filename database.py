@@ -138,7 +138,7 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
     pipeline = [
         {
             "$setWindowFields": {
-                "sortBy": {xp_field: -1, "username": 1},
+                "sortBy": {xp_field: -1},
                 "output": {
                     "position": {"$rank": {}}
                 }
@@ -164,6 +164,9 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
 
     results = await betpanda.aggregate(pipeline).to_list(length=None)
 
+    # Tiebreaker sort in Python to avoid MongoDB $rank single-field restriction
+    results.sort(key=lambda x: (x["position"], x.get("username", "")))
+
     top_10 = []
     user_entry = None
     seen_slots = 0
@@ -171,7 +174,7 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
     for entry in results:
         formatted = {
             "position": entry["position"],
-            "username": entry["username"],
+            "username": entry.get("username", "Unknown"),
             "xp": entry.get(xp_field, 0)
         }
         if entry["_id"] == userid:
@@ -180,60 +183,11 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
             top_10.append(formatted)
             seen_slots += 1
 
-    top_10.sort(key=lambda x: x["position"])
-
     return {
         "success": True,
         "leaderboard_type": leaderboard_type,
         "top_10": top_10,
         "user": user_entry
-    }
-
-# Get position of a user in monthly and total xp leaderboard.
-async def get_user_rank_position(userid: int) -> dict:
-    pipeline_total = [
-        {
-            "$setWindowFields": {
-                "sortBy": {"total_xp": -1},
-                "output": {"position": {"$rank": {}}}
-            }
-        },
-        {"$match": {"_id": userid}},
-        {"$project": {"_id": 1, "username": 1, "total_xp": 1, "position": 1}}
-    ]
-
-    pipeline_monthly = [
-        {
-            "$setWindowFields": {
-                "sortBy": {"monthly_xp": -1},
-                "output": {"position": {"$rank": {}}}
-            }
-        },
-        {"$match": {"_id": userid}},
-        {"$project": {"_id": 1, "monthly_xp": 1, "position": 1}}
-    ]
-
-    total_result, monthly_result = await asyncio.gather(
-        betpanda.aggregate(pipeline_total).to_list(length=1),
-        betpanda.aggregate(pipeline_monthly).to_list(length=1)
-    )
-
-    if not total_result:
-        return {
-            "success": False,
-            "message": "User not found!"
-        }
-
-    total_entry = total_result[0]
-    monthly_entry = monthly_result[0] if monthly_result else {}
-
-    return {
-        "success": True,
-        "username": total_entry["username"],
-        "total_xp": total_entry.get("total_xp", 0),
-        "total_position": total_entry["position"],
-        "monthly_xp": monthly_entry.get("monthly_xp", 0),
-        "monthly_position": monthly_entry.get("position")
     }
 
 # Update missions for users as they progress.
