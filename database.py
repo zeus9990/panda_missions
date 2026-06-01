@@ -21,6 +21,7 @@ import asyncio
 #     "x_likes": 0,
 #     "engage_points": 0,
 #     "daily_streak": 0,
+#     "memes": 0,
 #     "last_msg_date": None,
 #     "created_at": "23-08-26"
 # }
@@ -80,6 +81,7 @@ async def user_register(userid: int, username: str) -> dict:
                 "x_retweets": 0,
                 "engage_points": 0,
                 "daily_streak": 0,
+                "memes": 0,
                 "last_msg_date": None,
                 "created_at": today_str
             }
@@ -411,6 +413,7 @@ async def weekly_reset() -> dict:
             "x_retweets": 0,
             "x_likes": 0,
             "daily_streak": 0,
+            "memes": 0,
             "last_msg_date": None
         }}
     )
