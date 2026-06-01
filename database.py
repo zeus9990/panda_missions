@@ -163,7 +163,7 @@ async def get_leaderboard(userid: int, leaderboard_type: str = "total") -> dict:
         }
     ]
 
-    results = await betpanda.aggregate(pipeline).to_list(length=11)
+    results = await betpanda.aggregate(pipeline).to_list(length=None)
 
     top_10 = []
     user_entry = None
