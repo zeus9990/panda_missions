@@ -13,6 +13,7 @@ ADMIN_ROLE_IDS = [1501988942709264445, 1288139469609762846]         # Role ID th
 LOG_CHANNEL_ID = 1505841663002542121                                # Channel ID where bot alerts & bonus logs are posted.
 MISSION_CHANNEL_ID = 1505840874280452186                            # Channel ID where bot will ping users upon mission complition and role grants.
 GENERAL_CHAT_ID = 1288133484723966006                               # General chat ID required for completion of general chat message mission.
+POLL_CHANNEL = 1288133484723966006                                  # Channel id for the poll channel where poll will be posted.
 COOLDOWN_SECONDS = 60                                               # Cooldown time between messages to avoid spam.
 
 
@@ -147,4 +148,12 @@ WEEKLY_MISSIONS = {
         "status": "Active",
         "description": "Be in the top 5 to answer a trivia question in #general-chat and get rewarded."
     },
+    "poll_vote": {
+        "mission_id": "POLL1",
+        "name": "Weekly Poll",
+        "xp_reward": 50,
+        "auto_track": True,
+        "status": "Active",
+        "description": "A weekly poll will be dropped in #general-chat cast your vote to win rewards."
+    }
 }
