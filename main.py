@@ -23,7 +23,7 @@ initial_extensions = [
     "Cogs.xp",
     "Cogs.error_handler",
     "Cogs.x_engage",
-    "Cogs.poll.py"
+    "Cogs.poll"
 ]
 
 @bot.event
