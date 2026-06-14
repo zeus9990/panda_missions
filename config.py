@@ -111,7 +111,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Post 10 Betpanda-related posts on X.",
-        "count": 10
+        "count": 7
     },
     "x_retweets": {
         "mission_id": "XRT02",
@@ -120,7 +120,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Retweet 10 official Betpanda posts on X.",
-        "count": 10
+        "count": 7
     },
     "x_comments": {
         "mission_id": "XCM03",
@@ -129,7 +129,7 @@ WEEKLY_MISSIONS = {
         "auto_track": True,
         "status": "Active",
         "description": "Leave a comment on 10 Betpanda posts on X.",
-        "count": 10
+        "count": 7
     },
     "daily_streak": {
         "mission_id": "STK01",
