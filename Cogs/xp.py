@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 # ── New rule constants ────────────────────────────────────────────────────────
-MIN_MESSAGE_LENGTH   = 10       # messages shorter than this earn 0 XP
+MIN_MESSAGE_LENGTH   = 15       # messages shorter than this earn 0 XP
 DAILY_XP_CAP         = 50       # max XP a user can earn per day from messages
 LONG_MESSAGE_BONUS   = 1        # +XP when message >= LONG_MESSAGE_THRESHOLD chars
 LONG_MESSAGE_THRESHOLD = 100
@@ -60,12 +60,7 @@ class XPCog(commands.Cog):
                 return random.randint(rule["min_xp"], rule["max_xp"])
         return random.randint(1, 6)
 
-    def calculate_bonus_xp(
-        self,
-        message: discord.Message,
-        is_first_message_today: bool,
-        user_id: int,
-    ) -> int:
+    def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, user_id: int) -> int:
         """
         Calculate bonus XP from the new quality rules.
         Evaluated after base XP so bonuses can be capped together.
