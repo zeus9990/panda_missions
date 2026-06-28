@@ -23,8 +23,8 @@ TG_CHAT_ID = -1002194384512                                         # Telegram c
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
-    {"max_len": 10, "min_xp": 2, "max_xp": 4},
-    {"max_len": 50, "min_xp": 4, "max_xp": 8}
+    {"max_len": 10, "min_xp": 1, "max_xp": 4},
+    {"max_len": 50, "min_xp": 2, "max_xp": 5}
 ]
 
 # Channel IDs that award XP (Channel IDs)
