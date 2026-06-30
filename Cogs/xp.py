@@ -58,9 +58,9 @@ class XPCog(commands.Cog):
         for rule in XP_LENGTH_RULES:
             if content_length <= rule["max_len"]:
                 return random.randint(rule["min_xp"], rule["max_xp"])
-        return random.randint(1, 6)
+        return random.randint(1, 4)
 
-    def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, user_id: int) -> int:
+    def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, user_id: int,) -> int:
         """
         Calculate bonus XP from the new quality rules.
         Evaluated after base XP so bonuses can be capped together.
@@ -74,9 +74,7 @@ class XPCog(commands.Cog):
         # ── Reply bonuses ─────────────────────────────────────────────────────
         if message.reference and message.reference.resolved:
             resolved = message.reference.resolved
-            # Make sure the referenced object is an actual message with an author
             if isinstance(resolved, discord.Message) and resolved.author:
-                # Bonus for helping newcomers (account < NEWCOMER_DAYS days old)
                 account_age_days = (
                     discord.utils.utcnow() - resolved.author.created_at
                 ).days
@@ -93,8 +91,6 @@ class XPCog(commands.Cog):
             bonus += VARIETY_BONUS
 
         return bonus
-
-    # ── Embed helpers ─────────────────────────────────────────────
 
     async def send_mission_embeds(self, message: discord.Message, mission_data: dict) -> None:
         """Send mission completion embed to mission channel and log channel."""
@@ -191,7 +187,7 @@ class XPCog(commands.Cog):
         if message.channel.id not in XP_CHANNELS:
             return
 
-        # Minimum length check 
+        # Minimum length check (before cooldown so cooldown isn't wasted)
         if len(message.content) < MIN_MESSAGE_LENGTH:
             return
 
@@ -206,10 +202,6 @@ class XPCog(commands.Cog):
 
         # Detect new day and reset daily counters for this user
         is_first_message_today = self._reset_daily_state_if_needed(user_id)
-
-        # Daily XP cap pre-check
-        if self._remaining_daily_xp(user_id) <= 0:
-            return
 
         # Update cooldown and calculate base XP
         self.cooldown_cache[user_id] = now
@@ -226,16 +218,20 @@ class XPCog(commands.Cog):
         xp_to_award += bonus_xp
 
         # Clamp to remaining daily cap
+        # IMPORTANT: this cap applies ONLY to per-message XP. It does NOT block
+        # missions, streaks, or msg_general counting below — those always run,
+        # even if the user has hit their daily message-XP cap.
         xp_to_award = min(xp_to_award, self._remaining_daily_xp(user_id))
         self._daily_xp[user_id] += xp_to_award
 
         is_general = message.channel.id == GENERAL_CHAT_ID
 
-        # Handle streak mission (general chat only)
+        # Handle streak mission (general chat only) — always runs, uncapped
         if is_general:
             await self.handle_streak_mission(message)
 
-        # Award XP
+        # Award XP (xp_to_award may be 0 here if the cap was hit — that's fine,
+        # msg_count still increments so weekly/mission counters stay accurate)
         msg_count = 1 if is_general else 0
         xp_result = await xp_update(
             userid=user_id,
