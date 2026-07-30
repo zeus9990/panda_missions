@@ -5,6 +5,7 @@ from config import WEEKLY_MISSIONS, DB_URL
 import io
 import csv
 import asyncio
+from typing import Union, Optional, Set
 
 # data_set ={
 #     "_id": 7892377357757735,
@@ -30,12 +31,14 @@ import asyncio
 database = motor.motor_asyncio.AsyncIOMotorClient(DB_URL)
 pandabase = database["Betpanda"]
 betpanda = pandabase["betpanda"]
+stats = pandabase["platform_stats"]
 print("Database connection Successfull!!")
 
 # Database indexing
 async def setup_indexes() -> None:
     await betpanda.create_index([("total_xp", -1)])
     await betpanda.create_index([("monthly_xp", -1)])
+    await stats.create_index([("platform", 1), ("date", 1)], unique=True)
 
 # Generates an in-memory CSV snapshot of all users.
 async def generate_snapshot_csv(reset_type: str) -> tuple[io.BytesIO, str]:
@@ -434,3 +437,79 @@ async def monthly_reset() -> dict:
         "file": file,
         "filename": filename
     }
+
+# Stats
+async def record_stat_event(
+    platform: str,          # "discord" or "telegram"
+    event_type: str,        # "join" | "leave" | "message"
+    user_id: Union[int, str],
+    total_members: Optional[int] = None,
+    event_date: Optional[str] = None,
+) -> dict:
+    event_date = event_date or datetime.now(timezone.utc).date().isoformat()
+    filter_ = {"platform": platform, "date": event_date}
+ 
+    update: dict = {"$set": {"updated_at": datetime.now(timezone.utc)}}
+    inc: dict = {}
+ 
+    if event_type == "join":
+        inc["total_joined"] = 1
+        inc["growth"] = 1
+    elif event_type == "leave":
+        inc["total_left"] = 1
+        inc["growth"] = -1
+    elif event_type == "message":
+        inc["total_messages"] = 1
+        update["$addToSet"] = {"active_user_ids": str(user_id)}
+    else:
+        raise ValueError(f"Unknown event_type: {event_type}")
+ 
+    if inc:
+        update["$inc"] = inc
+    if total_members is not None:
+        update["$set"]["total_members"] = total_members
+ 
+    doc = await stats.find_one_and_update(
+        filter_, update, upsert=True, return_document=ReturnDocument.AFTER
+    )
+ 
+    # Denormalize active_members from the active_user_ids set right after.
+    if event_type == "message":
+        active_count = len(doc.get("active_user_ids", []))
+        await stats.update_one(filter_, {"$set": {"active_members": active_count}})
+ 
+    return doc
+
+
+async def get_stats_range(platform: str, chat_id: Union[int, str], start_date: str, end_date: str) -> dict:
+    cursor = stats.find({
+        "platform": platform,
+        "chat_id": str(chat_id),
+        "date": {"$gte": start_date, "$lte": end_date},
+    })
+ 
+    total_joined = total_left = total_messages = 0
+    active_ids: Set[str] = set()
+    total_members = None
+    days_seen = 0
+ 
+    async for doc in cursor:
+        days_seen += 1
+        total_joined += doc.get("total_joined", 0)
+        total_left += doc.get("total_left", 0)
+        total_messages += doc.get("total_messages", 0)
+        active_ids.update(doc.get("active_user_ids", []))
+        if "total_members" in doc:
+            total_members = doc["total_members"]  # most recent wins
+ 
+    result = {
+        "total_joined": total_joined,
+        "total_left": total_left,
+        "growth": total_joined - total_left,
+        "total_messages": total_messages,
+        "avg_daily": round(total_messages / max(days_seen, 1), 2),
+        "active_members": len(active_ids),
+    }
+    if total_members is not None:
+        result["total_members"] = total_members
+    return result

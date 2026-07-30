@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from cachetools import TTLCache
 from tg_auto import send_telegram_message
-from database import xp_update, complete_mission, update_streak
+from database import xp_update, complete_mission, update_streak, record_stat_event
 from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS
 from rank_update import rank_update_embed
 from typing import Optional
@@ -177,6 +177,10 @@ class XPCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+        await record_stat_event("discord", "message", message.author.id)
+
         # Forward bot messages in tweet channel to Telegram
         if message.author.bot:
             if message.channel.id == TWEET_CHANNEL_ID:
