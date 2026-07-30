@@ -107,7 +107,14 @@ class StatsCog(commands.Cog):
             return
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id
-        await record_stat_event("telegram", "message", user_id)
+        
+        total_members = None
+        try:
+            total_members = await context.bot.get_chat_member_count(chat_id)
+        except Exception as e:
+            print("Could not fetch Telegram member count: %s", e)
+
+        await record_stat_event("telegram", "message", user_id, total_members=total_members)
 
     # ---------------------------------------------------------------
     # Commands
