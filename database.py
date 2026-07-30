@@ -482,10 +482,9 @@ async def record_stat_event(
     return doc
 
 
-async def get_stats_range(platform: str, chat_id: Union[int, str], start_date: str, end_date: str) -> dict:
+async def get_stats_range(platform: str, start_date: str, end_date: str) -> dict:
     cursor = stats.find({
         "platform": platform,
-        "chat_id": str(chat_id),
         "date": {"$gte": start_date, "$lte": end_date},
     })
  
@@ -500,8 +499,7 @@ async def get_stats_range(platform: str, chat_id: Union[int, str], start_date: s
         total_left += doc.get("total_left", 0)
         total_messages += doc.get("total_messages", 0)
         active_ids.update(doc.get("active_user_ids", []))
-        if "total_members" in doc:
-            total_members = doc["total_members"]  # most recent wins
+        total_members = doc["total_members"]
  
     result = {
         "total_joined": total_joined,
@@ -510,7 +508,6 @@ async def get_stats_range(platform: str, chat_id: Union[int, str], start_date: s
         "total_messages": total_messages,
         "avg_daily": round(total_messages / max(days_seen, 1), 2),
         "active_members": len(active_ids),
+        "total_members": total_members,
     }
-    if total_members is not None:
-        result["total_members"] = total_members
     return result

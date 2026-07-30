@@ -67,11 +67,11 @@ class StatsCog(commands.Cog):
     # ---------------------------------------------------------------
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        await record_stat_event("discord", "join", member.id)
+        await record_stat_event("discord", "join", member.id, total_members=member.guild.member_count)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        await record_stat_event("discord", "leave", member.id)
+        await record_stat_event("discord", "leave", member.id, total_members=member.guild.member_count)
 
     # ---------------------------------------------------------------
     # Telegram handlers
@@ -148,7 +148,7 @@ class StatsCog(commands.Cog):
         start_date = end_date - dt.timedelta(days=days - 1)
  
         data = await get_stats_range(
-            platform, chat_id, start_date.isoformat(), end_date.isoformat()
+            platform, start_date.isoformat(), end_date.isoformat()
         )
  
         embed = discord.Embed(
@@ -161,8 +161,7 @@ class StatsCog(commands.Cog):
         embed.add_field(name="● Total Messages", value=data["total_messages"])
         embed.add_field(name="● Avg Daily", value=data["avg_daily"])
         embed.add_field(name="● Active Members", value=data["active_members"])
-        if "total_members" in data:
-            embed.add_field(name="● Total Members", value=data["total_members"])
+        embed.add_field(name="● Total Members", value=data["total_members"])
  
         await interaction.followup.send(embed=embed)
  
@@ -197,7 +196,7 @@ class StatsCog(commands.Cog):
         start_date = end_date - dt.timedelta(days=days - 1)
  
         data = await get_stats_range(
-            platform, chat_id, start_date.isoformat(), end_date.isoformat()
+            platform, start_date.isoformat(), end_date.isoformat()
         )
         data["platform"] = platform
         data["start_date"] = start_date.isoformat()

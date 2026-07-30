@@ -179,7 +179,7 @@ class XPCog(commands.Cog):
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
             return
-        await record_stat_event("discord", "message", message.author.id)
+        await record_stat_event("discord", "message", message.author.id, total_members=message.guild.member_count)
 
         # Forward bot messages in tweet channel to Telegram
         if message.author.bot:
