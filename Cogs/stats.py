@@ -1,10 +1,13 @@
 # Cog: Daily stats of Telegram and Discord
 import discord
 from dotenv import load_dotenv
-import os
+from typing import Literal
+import datetime as dt
+import os, json
 from config import TG_CHAT_ID
 from database import record_stat_event, get_stats_range
 from discord.ext import commands
+from discord import app_commands
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -27,9 +30,6 @@ class StatsCog(commands.Cog):
         self.telegram_app: Application | None = None
 
     async def cog_load(self):
-        await self.mongo.init()
-        print("StatsCog: MongoDB ready.")
-
         if not TELEGRAM_BOT_TOKEN:
             print(
                 "StatsCog: TELEGRAM_BOT_TOKEN not set - Telegram tracking disabled."
