@@ -1,5 +1,7 @@
 # Cog: Daily stats of Telegram and Discord
 import discord
+from dotenv import load_dotenv
+import os
 from config import TG_CHAT_ID
 from database import record_stat_event, get_stats_range
 from discord.ext import commands
@@ -13,6 +15,8 @@ from telegram.ext import (
     filters,
 )
 
+
+load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
 TELEGRAM_CHAT_ID = TG_CHAT_ID
 
