@@ -461,6 +461,7 @@ async def record_stat_event(
     elif event_type == "message":
         inc["total_messages"] = 1
         update["$addToSet"] = {"active_user_ids": str(user_id)}
+        update["$setOnInsert"] = {"total_joined": 0, "total_left": 0, "growth": 0}
     else:
         raise ValueError(f"Unknown event_type: {event_type}")
  
