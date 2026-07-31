@@ -486,27 +486,31 @@ async def get_stats_range(platform: str, start_date: str, end_date: str) -> dict
     cursor = stats.find({
         "platform": platform,
         "date": {"$gte": start_date, "$lte": end_date},
-    })
- 
+    }).sort("date", -1)  # newest first, so total_members below comes from the latest day
+
     total_joined = total_left = total_messages = 0
     active_ids: Set[str] = set()
     total_members = None
     days_seen = 0
- 
+
     async for doc in cursor:
         days_seen += 1
         total_joined += doc.get("total_joined", 0)
         total_left += doc.get("total_left", 0)
         total_messages += doc.get("total_messages", 0)
         active_ids.update(doc.get("active_user_ids", []))
-        total_members = doc["total_members"]
- 
+        if total_members is None:
+            total_members = doc.get("total_members")
+
     result = {
+        "platform": platform,
+        "start_date": start_date,
+        "end_date": end_date,
         "total_joined": total_joined,
         "total_left": total_left,
-        "growth": total_joined - total_left,
+        "member_growth": total_joined - total_left,
         "total_messages": total_messages,
-        "avg_daily": round(total_messages / max(days_seen, 1), 2),
+        "average_daily_messages": round(total_messages / max(days_seen, 1), 2),
         "active_members": len(active_ids),
         "total_members": total_members,
     }
