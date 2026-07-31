@@ -157,9 +157,9 @@ class StatsCog(commands.Cog):
         )
         embed.add_field(name="● Total Joined", value=data["total_joined"])
         embed.add_field(name="● Total Left", value=data["total_left"])
-        embed.add_field(name="● Growth", value=data["growth"])
+        embed.add_field(name="● Growth", value=data["member_growth"])
         embed.add_field(name="● Total Messages", value=data["total_messages"])
-        embed.add_field(name="● Avg Daily", value=data["avg_daily"])
+        embed.add_field(name="● Avg Daily", value=data["average_daily_messages"])
         embed.add_field(name="● Active Members", value=data["active_members"])
         embed.add_field(name="● Total Members", value=data["total_members"])
  
