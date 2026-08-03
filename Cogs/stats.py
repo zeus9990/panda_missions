@@ -52,7 +52,14 @@ class StatsCog(commands.Cog):
         # it shares the loop your Discord bot is already running on.
         await self.telegram_app.initialize()
         await self.telegram_app.start()
-        await self.telegram_app.updater.start_polling(drop_pending_updates=True)
+        # allowed_updates=Update.ALL_TYPES is required here — Telegram does NOT
+        # send "chat_member" updates by default (for backwards compatibility
+        # with older bots), even if a handler is registered for them. Without
+        # this, join/leave events are silently never delivered.
+        await self.telegram_app.updater.start_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES,
+        )
         print("StatsCog: Telegram bot polling started.")
 
     async def cog_unload(self):
