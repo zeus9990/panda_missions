@@ -160,7 +160,7 @@ class XPCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot or not message.guild:
+        if not message.guild:
             return
         await record_stat_event("discord", "message", message.author.id, total_members=message.guild.member_count)
 
