@@ -31,9 +31,9 @@ class StatsCog(commands.Cog):
 
     def _resolve_telegram_platform(self, chat_id) -> str | None:
         if str(chat_id) == str(TG_GROUP_ID):
-            return "telegram_group"
-        elif str(chat_id) == str(TG_CHAT_ID):
             return "telegram_channel"
+        elif str(chat_id) == str(TG_CHAT_ID):
+            return "telegram_group"
         return None
     
     async def cog_load(self):
@@ -120,14 +120,18 @@ class StatsCog(commands.Cog):
         await record_stat_event(platform, event_type, user_id, total_members=total_members)
 
     async def _on_telegram_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not update.effective_message or not update.effective_user:
+        if not update.effective_message:
             return
         chat_id = update.effective_chat.id
         platform = self._resolve_telegram_platform(chat_id)
         if platform is None:
             return
-        user_id = update.effective_user.id
-        
+
+        # Channel posts have no effective_user (posts are attributed to the
+        # channel, not a person) — fall back to a channel-scoped placeholder
+        # so we still record the message/total_members snapshot.
+        user_id = update.effective_user.id if update.effective_user else f"channel:{chat_id}"
+
         total_members = None
         try:
             total_members = await context.bot.get_chat_member_count(chat_id)

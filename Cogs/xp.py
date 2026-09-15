@@ -18,7 +18,7 @@ from typing import Optional
 
 # ── New rule constants ────────────────────────────────────────────────────────
 MIN_MESSAGE_LENGTH   = 15       # messages shorter than this earn 0 XP
-DAILY_XP_CAP         = 50       # max XP a user can earn per day from messages
+DAILY_XP_CAP         = 150      # max XP a user can earn per day from messages
 LONG_MESSAGE_BONUS   = 1        # +XP when message >= LONG_MESSAGE_THRESHOLD chars
 LONG_MESSAGE_THRESHOLD = 100
 NEWCOMER_REPLY_BONUS = 2        # +XP for replying to user <7 days old
@@ -42,7 +42,7 @@ class XPCog(commands.Cog):
         for rule in XP_LENGTH_RULES:
             if content_length <= rule["max_len"]:
                 return random.randint(rule["min_xp"], rule["max_xp"])
-        return random.randint(1, 4)
+        return random.randint(1, 3)
 
     def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, channels_today: list) -> int:
         """

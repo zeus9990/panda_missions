@@ -18,14 +18,14 @@ COOLDOWN_SECONDS = 60                                               # Cooldown t
 
 
 TWEET_CHANNEL_ID = 1504182835479707885                              # watching for new tweets in discord.
-TG_CHAT_ID = -1002194384512                                         # Telegram channel id to mirror tweets (Betpanda Community Chat).
-TG_GROUP_ID = -1002143393790                                        # Telegram group id to monitor (Betpanda Casino)
+TG_CHAT_ID = -1002194384512                                         # Telegram group id to mirror tweets (Betpanda Community Chat).
+TG_GROUP_ID = -1002143393790                                        # Telegram channel id to monitor (Betpanda Casino)
 
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
-    {"max_len": 15, "min_xp": 1, "max_xp": 4},
-    {"max_len": 50, "min_xp": 2, "max_xp": 5}
+    {"max_len": 15, "min_xp": 1, "max_xp": 3},
+    {"max_len": 50, "min_xp": 2, "max_xp": 4}
 ]
 
 # Channel IDs that award XP (Channel IDs)
