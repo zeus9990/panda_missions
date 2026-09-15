@@ -32,6 +32,7 @@ database = motor.motor_asyncio.AsyncIOMotorClient(DB_URL)
 pandabase = database["Betpanda"]
 betpanda = pandabase["betpanda"]
 stats = pandabase["platform_stats"]
+daily_xp_state = pandabase["daily_xp_state"]
 print("Database connection Successfull!!")
 
 # Database indexing
@@ -39,6 +40,7 @@ async def setup_indexes() -> None:
     await betpanda.create_index([("total_xp", -1)])
     await betpanda.create_index([("monthly_xp", -1)])
     await stats.create_index([("platform", 1), ("date", 1)], unique=True)
+    await daily_xp_state.create_index([("date", 1)])
 
 # Generates an in-memory CSV snapshot of all users.
 async def generate_snapshot_csv(reset_type: str) -> tuple[io.BytesIO, str]:
@@ -515,3 +517,65 @@ async def get_stats_range(platform: str, start_date: str, end_date: str) -> dict
         "total_members": total_members,
     }
     return result
+
+async def get_daily_xp_progress(userid: int, channel_id: int) -> dict:
+    """
+    Fetch a user's daily XP-cap tracking state, registering the given channel
+    as visited today. Automatically resets the state if it's a new UTC day
+    (or the user has no record yet).
+
+    Returns:
+        {
+            "is_first_message_today": bool,
+            "channels": [channel_id, ...],  # channels visited today (post-update)
+            "xp_earned": int                # message XP earned today (pre-this-message)
+        }
+    """
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # Same-day record already exists — just register this channel.
+    updated = await daily_xp_state.find_one_and_update(
+        {"_id": userid, "date": today},
+        {"$addToSet": {"channels": channel_id}},
+        return_document=ReturnDocument.AFTER
+    )
+
+    if updated:
+        return {
+            "is_first_message_today": False,
+            "channels": updated.get("channels", []),
+            "xp_earned": updated.get("xp_earned", 0)
+        }
+
+    # No record for today (new day, or brand-new user) — reset/create it.
+    updated = await daily_xp_state.find_one_and_update(
+        {"_id": userid},
+        {"$set": {
+            "date": today,
+            "channels": [channel_id],
+            "xp_earned": 0
+        }},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+
+    return {
+        "is_first_message_today": True,
+        "channels": updated.get("channels", [channel_id]),
+        "xp_earned": updated.get("xp_earned", 0)
+    }
+
+
+async def add_daily_xp(userid: int, xp_amount: int) -> int:
+    """
+    Increment today's tracked message-XP for a user (cap-tracking only —
+    unrelated to total_xp/monthly_xp). Returns the updated xp_earned value.
+    """
+    today = datetime.now(timezone.utc).date().isoformat()
+    updated = await daily_xp_state.find_one_and_update(
+        {"_id": userid, "date": today},
+        {"$inc": {"xp_earned": xp_amount}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return updated.get("xp_earned", xp_amount)

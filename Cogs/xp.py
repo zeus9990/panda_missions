@@ -4,12 +4,17 @@ import discord
 from discord.ext import commands
 from cachetools import TTLCache
 from tg_auto import send_telegram_message
-from database import xp_update, complete_mission, update_streak, record_stat_event
+from database import (
+    xp_update,
+    complete_mission,
+    update_streak,
+    record_stat_event,
+    get_daily_xp_progress,
+    add_daily_xp,
+)
 from config import COOLDOWN_SECONDS, XP_LENGTH_RULES, TWEET_CHANNEL_ID, XP_CHANNELS, GENERAL_CHAT_ID, MISSION_CHANNEL_ID, LOG_CHANNEL_ID, WEEKLY_MISSIONS
 from rank_update import rank_update_embed
 from typing import Optional
-from collections import defaultdict
-from datetime import datetime, timezone
 
 # ── New rule constants ────────────────────────────────────────────────────────
 MIN_MESSAGE_LENGTH   = 15       # messages shorter than this earn 0 XP
@@ -28,29 +33,8 @@ class XPCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cooldown_cache = TTLCache(maxsize=10_000, ttl=COOLDOWN_SECONDS)
-        self._last_xp_date: dict[int, str] = {}  # user_id -> "YYYY-MM-DD"
-        self._daily_channels: dict[int, set] = defaultdict(set)  # user_id -> {channel_id, ...}
-        self._daily_xp: dict[int, int] = defaultdict(int)  # user_id -> xp earned today
 
     # ── Helpers ───────────────────────────────────────────────────────────────
-
-    def _today_utc(self) -> str:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    def _reset_daily_state_if_needed(self, user_id: int) -> bool:
-        """Returns True if this is the user's first XP event today (new day detected)."""
-        today = self._today_utc()
-        if self._last_xp_date.get(user_id) != today:
-            # New day — wipe daily tracking for this user
-            self._daily_channels[user_id] = set()
-            self._daily_xp[user_id] = 0
-            self._last_xp_date[user_id] = today
-            return True
-        return False
-
-    def _remaining_daily_xp(self, user_id: int) -> int:
-        """How much more XP this user can earn today before hitting the cap."""
-        return max(0, DAILY_XP_CAP - self._daily_xp[user_id])
 
     def calculate_message_xp(self, message_content: str) -> int:
         """Calculate dynamic XP reward based on message character length."""
@@ -60,7 +44,7 @@ class XPCog(commands.Cog):
                 return random.randint(rule["min_xp"], rule["max_xp"])
         return random.randint(1, 4)
 
-    def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, user_id: int,) -> int:
+    def calculate_bonus_xp(self, message: discord.Message, is_first_message_today: bool, channels_today: list) -> int:
         """
         Calculate bonus XP from the new quality rules.
         Evaluated after base XP so bonuses can be capped together.
@@ -86,7 +70,6 @@ class XPCog(commands.Cog):
             bonus += DAILY_LOGIN_BONUS
 
         # ── Multi-channel variety bonus ───────────────────────────────────────
-        channels_today = self._daily_channels[user_id]
         if len(channels_today) >= VARIETY_CHANNEL_THRESHOLD:
             bonus += VARIETY_BONUS
 
@@ -204,20 +187,22 @@ class XPCog(commands.Cog):
         if time_delta < COOLDOWN_SECONDS:
             return
 
-        # Detect new day and reset daily counters for this user
-        is_first_message_today = self._reset_daily_state_if_needed(user_id)
+        # Fetch (and auto-reset if it's a new day) this user's daily XP-cap
+        # state from MongoDB, registering the current channel as visited today.
+        daily_progress = await get_daily_xp_progress(user_id, message.channel.id)
+        is_first_message_today = daily_progress["is_first_message_today"]
+        channels_today = daily_progress["channels"]
+        xp_earned_today = daily_progress["xp_earned"]
 
         # Update cooldown and calculate base XP
         self.cooldown_cache[user_id] = now
         xp_to_award = self.calculate_message_xp(message.content)
 
         # Add bonus XP from quality rules
-        # Register the channel before checking variety bonus
-        self._daily_channels[user_id].add(message.channel.id)
         bonus_xp = self.calculate_bonus_xp(
             message=message,
             is_first_message_today=is_first_message_today,
-            user_id=user_id,
+            channels_today=channels_today,
         )
         xp_to_award += bonus_xp
 
@@ -225,8 +210,12 @@ class XPCog(commands.Cog):
         # IMPORTANT: this cap applies ONLY to per-message XP. It does NOT block
         # missions, streaks, or msg_general counting below — those always run,
         # even if the user has hit their daily message-XP cap.
-        xp_to_award = min(xp_to_award, self._remaining_daily_xp(user_id))
-        self._daily_xp[user_id] += xp_to_award
+        remaining_daily_xp = max(0, DAILY_XP_CAP - xp_earned_today)
+        xp_to_award = min(xp_to_award, remaining_daily_xp)
+
+        # Persist the updated daily-cap total (0 is still written so the
+        # record stays "touched" for today, matching prior in-memory behavior).
+        await add_daily_xp(user_id, xp_to_award)
 
         is_general = message.channel.id == GENERAL_CHAT_ID
 
