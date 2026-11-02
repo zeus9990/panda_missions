@@ -3,9 +3,11 @@ import aiohttp
 import discord
 from typing import Optional
 from discord.ext import commands, tasks
-from config import ENGAGE_API_KEY, LOG_CHANNEL_ID, MISSION_CHANNEL_ID, ADMIN_ROLE_IDS
-from database import user_details, user_register, complete_mission, update_engage_cache
-from rank_update import rank_update_embed
+from config import ENGAGE_API_KEY, LOG_CHANNEL_ID
+from database import user_details, user_register, update_engage_cache
+from services.xp import award_mission
+from utils.checks import admin_only
+from utils.errors import report_task_error
 
 ENGAGE_ORDER = ["x_likes", "x_retweets", "x_comments"]
 
@@ -16,18 +18,15 @@ USER_CONCURRENCY = 5
 
 class XEngageCog(commands.Cog):
 
-    def is_moderator(self, interaction: discord.Interaction) -> bool:
-        if not interaction.guild:
-            return False
-        return (
-            interaction.user.id == interaction.guild.owner_id or
-            any(role.id in ADMIN_ROLE_IDS for role in interaction.user.roles)
-        )
-
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._session: Optional[aiohttp.ClientSession] = None
         self.engage_loop.start()
+
+    def _guild(self) -> Optional[discord.Guild]:
+        """The server the bot runs in (taken from the staff log channel)."""
+        channel = self.bot.get_channel(LOG_CHANNEL_ID)
+        return channel.guild if channel else None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -57,6 +56,13 @@ class XEngageCog(commands.Cog):
 
     @tasks.loop(minutes=30)
     async def engage_loop(self):
+        # A tasks.loop dies for good on an unhandled error, so catch + report here.
+        try:
+            await self._sync()
+        except Exception as exc:
+            await report_task_error(self.bot, exc, "task XEngage.engage_loop")
+
+    async def _sync(self):
         print("[XEngage] Sync started.")
 
         # ── 1. Collect ALL entries from every page first ──────────────────────
@@ -126,97 +132,41 @@ class XEngageCog(commands.Cog):
         if increments == 0:
             return 0
 
-        # Fire all mission completions for THIS user concurrently
+        guild = self._guild()
+        if guild is None:
+            print("[XEngage] Staff log channel not found - cannot award missions.")
+            return 0
+
         awarded = 0
         for mission_key in ENGAGE_ORDER:
             for _ in range(increments):
-                mission_data = await complete_mission(
-                    userid=discord_id, username=username, mission_key=mission_key
-                )
-                if not mission_data["success"]:
-                    continue
-
-                awarded += 1
-
-                # Resolve the Discord user object once, reuse below
-                try:
-                    user_object = await self.bot.fetch_user(discord_id)
-                except discord.NotFound:
-                    print(f"[XEngage] Could not fetch Discord user {discord_id}, skipping embeds.")
-                    user_object = None
-
-                if not user_object:
-                    continue
-
-                # ── Mission channel embed
-                mission_embed = discord.Embed(
-                    title="🎉 Weekly Mission Completed!",
-                    description=(
-                        f"**Congratulations {user_object.mention}!**\n"
-                        f"● **You completed:** {mission_data['mission']['name']}\n"
-                        f"● **Mission Description:** {mission_data['mission']['description']}\n"
-                        f"● **Rewarded:** `+{mission_data['mission']['xp_reward']} XP`"
-                    ),
-                    color=discord.Color.green()
-                )
-                mission_embed.timestamp = discord.utils.utcnow()
-                mission_embed.set_footer(text="betpanda.io")
-
-                channel = self.bot.get_channel(MISSION_CHANNEL_ID)
-                if channel:
-                    await channel.send(embed=mission_embed)
-
-                # ── Staff / log channel embed ──────────────────────────────
-                staff_channel = self.bot.get_channel(LOG_CHANNEL_ID)
-                if staff_channel:
-                    log_embed = discord.Embed(
-                        title="📈 Mission Complete!",
-                        description=(
-                            f"**✧ User:** {user_object.mention}\n"
-                            f"**✧ User ID:** {user_object.id}\n"
-                            f"**✧ Mission Title:** {mission_data['mission']['name']}\n"
-                            f"**✧ Mission ID:** `{mission_data['mission']['mission_id']}`\n"
-                            f"**✧ Mission Reward:** `+{mission_data['mission']['xp_reward']} XP`\n"
-                            f"**✧ Reward Assigner:** Auto assigned."
-                        ),
-                        color=discord.Color.blue()
-                    )
-                    log_embed.timestamp = discord.utils.utcnow()
-                    log_embed.set_footer(text="betpanda.io")
-                    await staff_channel.send(embed=log_embed)
-
-                    await rank_update_embed(
-                        interaction=staff_channel,
-                        userid=discord_id,
-                        total_xp=mission_data["total_xp"]
-                    )
+                # award_mission announces, honours mission-XP pause and runs the rank check.
+                result = await award_mission(guild, discord_id, username or str(discord_id), mission_key)
+                if result["success"]:
+                    awarded += 1
 
         await update_engage_cache(userid=discord_id, engage_points=api_points)
         return awarded
 
 
     @discord.app_commands.command(name="sync_engage", description="Manually trigger an engagement sync right now.")
+    @admin_only()
     async def sync_engage(self, interaction: discord.Interaction):
-        if not self.is_moderator(interaction):
-            await interaction.response.send_message("> ❌ You don't have permission to use this command.", ephemeral=True)
-            return
         await interaction.response.send_message("> ⏳ Running engagement sync...", ephemeral=True)
-        await self.engage_loop.coro(self)
+        await self._sync()
         await interaction.followup.send("> ✅ Engagement sync complete.", ephemeral=True)
 
     @discord.app_commands.command(name="engage_status", description="Show cached engage points for a member.")
     @discord.app_commands.describe(member="The member to check")
+    @admin_only()
     async def engage_status(self, interaction: discord.Interaction, member: discord.Member):
-        if not self.is_moderator(interaction):
-            await interaction.response.send_message("> ❌ You don't have permission to use this command.", ephemeral=True)
-            return
-        user = await user_details(member.id)
-        if not user:
+        result = await user_details(member.id)
+        if not result["success"]:
             await interaction.response.send_message(f"> ❌ No DB entry found for {member.mention}.", ephemeral=True)
             return
-        cached = user.get("engage_points", 0)
+        user = result["message"]  # user_details wraps the document in {"success", "message"}
         embed = discord.Embed(title=f"Engage Points — {member.display_name}", color=discord.Color.green())
-        embed.add_field(name="Cached (DB)", value=str(cached),                    inline=True)
+        embed.add_field(name="Cached (DB)", value=str(user.get("engage_points", 0)), inline=True)
         embed.add_field(name="x_likes",     value=str(user.get("x_likes", 0)),    inline=True)
         embed.add_field(name="x_retweets",  value=str(user.get("x_retweets", 0)), inline=True)
         embed.add_field(name="x_comments",  value=str(user.get("x_comments", 0)), inline=True)

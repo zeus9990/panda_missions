@@ -14,7 +14,7 @@ LOG_CHANNEL_ID = 1505841663002542121                                # Channel ID
 MISSION_CHANNEL_ID = 1505840874280452186                            # Channel ID where bot will ping users upon mission complition and role grants.
 GENERAL_CHAT_ID = 1288133484723966006                               # General chat ID required for completion of general chat message mission.
 POLL_CHANNEL = 1288133484723966006                                  # Channel id for the poll channel where poll will be posted.
-COOLDOWN_SECONDS = 60                                               # Cooldown time between messages to avoid spam.
+COOLDOWN_SECONDS = 120                                               # Cooldown time between messages to avoid spam.
 
 
 TWEET_CHANNEL_ID = 1504182835479707885                              # watching for new tweets in discord.
@@ -24,8 +24,8 @@ TG_GROUP_ID = -1002143393790                                        # Telegram c
 # Message length-based XP formula configurations.
 # e.g., XP earned = random(min, max) based on message length ranges.
 XP_LENGTH_RULES = [
-    {"max_len": 15, "min_xp": 1, "max_xp": 3},
-    {"max_len": 50, "min_xp": 2, "max_xp": 4}
+    {"max_len": 50, "min_xp": 1, "max_xp": 2},
+    {"max_len": 10000, "min_xp": 1, "max_xp": 3}
 ]
 
 # Channel IDs that award XP (Channel IDs)
@@ -96,40 +96,40 @@ WEEKLY_MISSIONS = {
         "description": "Post 2 original memes in the #memes channel.",
         "count": 2
     },
-    "correct_match_take": {
-        "mission_id": "RTW54",
-        "name": "Share a correct take in #match-of-the-day",
-        "xp_reward": 200,
-        "auto_track": False,
-        "status": "Active",
-        "description": "Give your analytical take in #match-of-the-day on two separate occasions.",
-        "count": 1
-    },
+    # "correct_match_take": {
+    #     "mission_id": "RTW54",
+    #     "name": "Share a correct take in #match-of-the-day",
+    #     "xp_reward": 200,
+    #     "auto_track": False,
+    #     "status": "Active",
+    #     "description": "Give your analytical take in #match-of-the-day on two separate occasions.",
+    #     "count": 1
+    # },
     "x_likes": {
         "mission_id": "XPS01",
-        "name": "Like 10 Betpanda posts on X",
+        "name": "Like 7 Betpanda posts on X",
         "xp_reward": 100,
         "auto_track": True,
         "status": "Active",
-        "description": "Post 10 Betpanda-related posts on X.",
+        "description": "Post 7 Betpanda-related posts on X.",
         "count": 7
     },
     "x_retweets": {
         "mission_id": "XRT02",
-        "name": "Retweet 10 Betpanda posts on X",
+        "name": "Retweet 7 Betpanda posts on X",
         "xp_reward": 150,
         "auto_track": True,
         "status": "Active",
-        "description": "Retweet 10 official Betpanda posts on X.",
+        "description": "Retweet 7 official Betpanda posts on X.",
         "count": 7
     },
     "x_comments": {
         "mission_id": "XCM03",
-        "name": "Comment on 10 Betpanda posts on X",
+        "name": "Comment on 7 Betpanda posts on X",
         "xp_reward": 250,
         "auto_track": True,
         "status": "Active",
-        "description": "Leave a comment on 10 Betpanda posts on X.",
+        "description": "Leave a comment on 7 Betpanda posts on X.",
         "count": 7
     },
     "daily_streak": {
@@ -158,3 +158,18 @@ WEEKLY_MISSIONS = {
         "description": "A weekly poll will be dropped in #general-chat cast your vote to win rewards."
     }
 }
+
+
+# ── Mini-game betting ────────────────────────────────────────────────────────
+# Users stake XP on mini-games. Every UTC day each user starts again from 0 staked.
+MAX_BET_PER_GAME = 5        # largest XP stake allowed on a single bet
+DAILY_BET_LIMIT = 50        # total XP a user may stake per UTC day (all games together)
+BET_WIN_MULTIPLIER = 2      # win  -> +(bet x this) XP credited to total & monthly XP
+                            # loss -> -bet XP deducted from total & monthly XP
+                            # tie  -> bet returned (no XP change)
+# OPTIONAL: change the win multiplier of single games. Games not listed use BET_WIN_MULTIPLIER.
+# Keys: coinflip, diceduel, guess, rps, blackjack, dealerschoice, cups     e.g. {"cups": 4}
+GAME_MULTIPLIER_OVERRIDES = {}
+
+# Channel IDs where mini-games (/coinflip, ...) may be played. Leave EMPTY to allow every channel.
+GAME_CHANNEL_IDS = [1288134153023520798]

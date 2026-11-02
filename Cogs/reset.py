@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands, tasks
 from database import monthly_reset, weekly_reset
 from config import MISSION_CHANNEL_ID, LOG_CHANNEL_ID
+from utils.errors import report_task_error
 
 MIDNIGHT_UTC = time(0, 0, tzinfo=timezone.utc)
 
@@ -97,7 +98,7 @@ class ResetCog(commands.Cog):
             try:
                 await self._run_weekly_reset()
             except Exception as e:
-                print(f"Weekly reset failed: {e}")
+                await report_task_error(self.bot, e, "task ResetCog weekly reset")
 
         # Monthly reset (1st of the month)
         if today.day == 1:
@@ -105,7 +106,7 @@ class ResetCog(commands.Cog):
             try:
                 await self._run_monthly_reset()
             except Exception as e:
-                print(f"Monthly reset failed: {e}")
+                await report_task_error(self.bot, e, "task ResetCog monthly reset")
 
     @reset_check.before_loop
     async def before_reset_check(self):

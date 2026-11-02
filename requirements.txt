@@ -1,7 +1,6 @@
 cachetools
-discord.py
+discord.py>=2.4
 motor
 pymongo
 python-dotenv
-httpx
 python-telegram-bot==21.*
