@@ -7,6 +7,7 @@
 #   /admin pause-xp      pause MISSION XP FOR EVERYONE (it is held, not lost)
 #   /admin resume-xp     resume for EVERYONE and credit all held XP
 #   /admin xp-status     is mission XP paused? how many users / how much XP is held?
+#   /admin game-status   mini-game statistics: volume, wins/losses, favourites, balance
 #
 # Staff check (owner or ADMIN_ROLE_IDS) runs once for the whole group in
 # `interaction_check`; failures are formatted by Cogs/error_handler.py.
@@ -18,11 +19,22 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import WEEKLY_MISSIONS
-from database import get_bet_status, get_pause_state, get_pause_summary, get_user_held, get_user_rank_position, user_details
+from database import get_bet_status, get_pause_state, get_pause_summary, get_user_held, get_user_rank_position, user_details, get_game_overview, period_range
 from services.notify import send_staff_log
 from services.xp import award_mission, grant_xp, pause_mission_xp, resume_mission_xp
+from minigames.info import GAMES
+from minigames.stats_embed import build_game_status_embed
 from utils.checks import require_staff
 from utils.embeds import build_missions_embed, build_profile_embed
+
+PERIOD_CHOICES = [
+    app_commands.Choice(name="This month", value="month"),
+    app_commands.Choice(name="Today", value="today"),
+    app_commands.Choice(name="Last 7 days", value="week"),
+    app_commands.Choice(name="All time", value="all"),
+]
+GAME_CHOICES = [app_commands.Choice(name=f"{info['emoji']} {info['name']}", value=key)
+                for key, info in GAMES.items()]
 
 MANUAL_MISSIONS = [
     app_commands.Choice(name=m["name"][:100], value=key)
@@ -192,6 +204,19 @@ class AdminCog(commands.GroupCog, group_name="admin", group_description="Moderat
             embed.add_field(name="Selected user", value=text[:1000], inline=False)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    # ── Mini-game statistics ────────────────────────────────────────────────
+    @app_commands.command(name="game-status", description="Mini-game stats: volume, wins/losses, favourites, balance.")
+    @app_commands.describe(period="Time range (default: this month, UTC)", game="Only show this game (default: all)")
+    @app_commands.choices(period=PERIOD_CHOICES, game=GAME_CHOICES)
+    async def game_status(self, interaction: discord.Interaction,
+                          period: Optional[app_commands.Choice[str]] = None,
+                          game: Optional[app_commands.Choice[str]] = None):
+        await interaction.response.defer(ephemeral=True)
+        since, label = period_range(period.value if period else "month")
+        data = await get_game_overview(since, game.value if game else None)
+        await interaction.followup.send(
+            embed=build_game_status_embed(data, label, game.value if game else None), ephemeral=True)
 
+        
 async def setup(bot: commands.Bot):
     await bot.add_cog(AdminCog(bot))

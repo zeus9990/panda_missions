@@ -19,6 +19,7 @@ from .connection import (
 from .bets import (
     get_bet_status, get_game_stats, payout_multiplier, place_bet, refund_bet, settle_bet, settle_push,
 )
+from .game_stats import get_game_overview, period_range
 from .leaderboard import get_leaderboard, get_user_rank_position
 from .missions import complete_mission
 from .pause import (
@@ -36,7 +37,7 @@ from .xp import add_daily_xp, get_daily_xp_progress, xp_update
 __all__ = [
     "setup_indexes", "users_col", "platform_stats_col", "daily_xp_col", "settings_col", "game_history_col",
     "get_bet_status", "get_game_stats", "payout_multiplier", "place_bet", "refund_bet", "settle_bet",
-    "settle_push",
+    "settle_push", "get_game_overview", "period_range",
     "get_leaderboard", "get_user_rank_position", "complete_mission",
     "flush_user_pending", "get_pause_state", "get_pause_summary", "get_user_held", "is_paused",
     "pause_all", "resume_all",
