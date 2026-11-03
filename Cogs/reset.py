@@ -120,6 +120,15 @@ class ResetCog(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         await self._run_monthly_reset()
         await interaction.followup.send("> ✅ Monthly reset completed successfully.", ephemeral=True)
+        
+    @discord.app_commands.command(name="weekly_reset", description="Manually trigger the weekly mission reset.")
+    @discord.app_commands.checks.has_permissions(administrator=True)
+    async def weekly_reset_command(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        result = await self._run_weekly_reset()
+        await interaction.followup.send(
+            f"> ✅ Weekly reset completed successfully. **{result['modified_users']}** users were reset.",
+            ephemeral=True)
 
 
 async def setup(bot):
