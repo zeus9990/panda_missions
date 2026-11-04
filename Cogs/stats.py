@@ -4,10 +4,11 @@
 #   2. Discord tracking   - member joins/leaves + messages
 #   3. Tweet mirroring    - new tweet links posted by bots in TWEET_CHANNEL_ID -> Telegram
 #   4. Admin commands     - /stats and /exportstats
-#
-# (Replaces tg_auto.py and the tweet-forwarding code that used to live in xp.py.)
+
+import asyncio
 import datetime as dt
 import json
+import logging
 import re
 from typing import Literal, Optional
 
@@ -18,14 +19,22 @@ from discord.ext import commands
 from telegram import (
     InlineKeyboardButton, InlineKeyboardMarkup, LinkPreviewOptions, Update,
 )
+from telegram.error import NetworkError, RetryAfter, TelegramError, TimedOut
 from telegram.ext import (
     Application, ApplicationBuilder, ChatMemberHandler, ContextTypes, MessageHandler, filters,
 )
 
 from config import TG_BOT_TOKEN, TG_CHAT_ID, TG_GROUP_ID, TWEET_CHANNEL_ID
 from database import get_stats_range, record_stat_event
+from services.notify import send_staff_log
 from utils.checks import admin_only
 from utils.errors import report_task_error
+
+log = logging.getLogger(__name__)
+
+# python-telegram-bot's defaults are only 5 seconds, too tight for a hosted server's network.
+TG_CONNECT_TIMEOUT, TG_READ_TIMEOUT, TG_WRITE_TIMEOUT, TG_POOL_TIMEOUT = 10.0, 20.0, 20.0, 5.0
+TWEET_SEND_ATTEMPTS = 3   # tries for one tweet before giving up and telling staff
 
 URL_RE = re.compile(r"https?://[^\s<>]+")
 X_HOST_RE = re.compile(r"^https?://(?:www\.)?x\.com/", re.IGNORECASE)
@@ -52,7 +61,10 @@ class StatsCog(commands.Cog):
             print("StatsCog: TG_BOT_TOKEN not set - Telegram features disabled.")
             return
 
-        app = ApplicationBuilder().token(TG_BOT_TOKEN).build()
+        app = (ApplicationBuilder().token(TG_BOT_TOKEN)
+               .connect_timeout(TG_CONNECT_TIMEOUT).read_timeout(TG_READ_TIMEOUT)
+               .write_timeout(TG_WRITE_TIMEOUT).pool_timeout(TG_POOL_TIMEOUT)
+               .get_updates_read_timeout(TG_READ_TIMEOUT + 10).build())
         app.add_handler(ChatMemberHandler(self._on_tg_chat_member, ChatMemberHandler.CHAT_MEMBER))
         # NOTE: a bare filters.ALL also matches *edited* messages, which would
         # inflate message counts. Only count brand-new messages / channel posts.
@@ -64,7 +76,8 @@ class StatsCog(commands.Cog):
         await app.initialize()
         await app.start()
         # chat_member updates are NOT sent unless explicitly requested.
-        await app.updater.start_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+        await app.updater.start_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES,
+                                        error_callback=self._on_tg_polling_error)
         self.telegram_app = app
         print("StatsCog: Telegram polling started.")
 
@@ -133,6 +146,11 @@ class StatsCog(commands.Cog):
         total = await self._tg_member_count(context.bot, chat.id)
         await record_stat_event(platform, "message", user_id, total_members=total)
 
+    def _on_tg_polling_error(self, exc: TelegramError) -> None:
+        """Telegram hiccups (e.g. 502 Bad Gateway, timeouts) while polling. The library retries by
+        itself with a growing delay, so this is only a one-line note instead of a full traceback."""
+        log.warning("Telegram polling problem (retrying automatically): %s", exc)
+
     async def _on_tg_error(self, update: object, context: ContextTypes.DEFAULT_TYPE):
         await report_task_error(self.bot, context.error, "telegram handler")
 
@@ -179,13 +197,47 @@ class StatsCog(commands.Cog):
         # twitter.com links give Telegram a better preview than x.com
         link = X_HOST_RE.sub("https://twitter.com/", link)
 
-        await self.telegram_app.bot.send_message(
-            chat_id=TG_CHAT_ID,
-            text=f"🔥 New Tweet Alert Panda's 🐼\n\n{link}",
-            link_preview_options=LinkPreviewOptions(
-                is_disabled=False, prefer_large_media=True, show_above_text=False),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("View Tweet 𝕏", url=link)]]),
-        )
+        await self._send_tweet_to_telegram(message.guild, link)
+
+    @staticmethod
+    def _is_temporary(exc: TelegramError) -> bool:
+        """Worth retrying: timeouts, rate limits, 5xx / connection problems.
+        NOT BadRequest / Forbidden (they are NetworkError subclasses but will never succeed)."""
+        return isinstance(exc, (TimedOut, RetryAfter)) or type(exc) is NetworkError
+
+    async def _send_tweet_to_telegram(self, guild: discord.Guild, link: str) -> None:
+        """Send the tweet alert, retrying temporary network problems.
+
+        If every attempt fails the staff log channel is told (with the link, so someone can post it by
+        hand) instead of raising. Note: a read timeout can mean Telegram DID receive the message, so
+        in rare cases a retry can post the alert twice; that is better than silently losing a tweet.
+        """
+        for attempt in range(1, TWEET_SEND_ATTEMPTS + 1):
+            try:
+                await self.telegram_app.bot.send_message(
+                    chat_id=TG_CHAT_ID,
+                    text=f"🔥 New Tweet Alert Panda's 🐼\n\n{link}",
+                    link_preview_options=LinkPreviewOptions(
+                        is_disabled=False, prefer_large_media=True, show_above_text=False),
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("View Tweet 𝕏", url=link)]]),
+                )
+                return
+            except TelegramError as exc:
+                if not self._is_temporary(exc) or attempt == TWEET_SEND_ATTEMPTS:
+                    log.error("Could not forward tweet to Telegram after %s attempt(s): %s", attempt, exc)
+                    await send_staff_log(guild, discord.Embed(
+                        title="⚠️ Tweet was NOT forwarded to Telegram",
+                        description=(f"Telegram did not accept the alert ({type(exc).__name__}: {exc}).\n"
+                                     f"Please post it manually:\n{link}"),
+                        color=discord.Color.orange(), timestamp=discord.utils.utcnow()))
+                    return
+                delay = 2 * attempt
+                if isinstance(exc, RetryAfter):   # Telegram says how long to wait (int or timedelta)
+                    wait = exc.retry_after
+                    delay = min(30.0, float(wait.total_seconds() if hasattr(wait, "total_seconds") else wait))
+                log.warning("Telegram send failed (%s), retrying in %ss (attempt %s/%s)",
+                            exc, delay, attempt, TWEET_SEND_ATTEMPTS)
+                await asyncio.sleep(delay)
 
     # ══════════════════════════════════════════════════════════════════════
     # Admin commands
